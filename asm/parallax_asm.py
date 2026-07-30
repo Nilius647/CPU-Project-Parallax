@@ -1,34 +1,6 @@
 #!/usr/bin/env python3
 """
-Assemblatore per Parallax V2.
-
-Uso:
-    python3 parallax_asm.py programma.asm
-    python3 parallax_asm.py programma.asm --format dec
-    python3 parallax_asm.py programma.asm -o build/
-
-Produce due file di testo, uno per chip ROM, con un numero per riga:
-
-    rom_high.txt   ->  chip ROM alta   (opcode + nibble 1)
-    rom_low.txt    ->  chip ROM bassa  (nibble 2-5)
-
-Si incollano nell'editor ROM di DLS con il pulsante paste, dopo aver
-selezionato la stessa rappresentazione usata qui (default: esadecimale).
-
-Formato istruzione (28 bit):
-    bit 27-20  opcode
-    bit 19-16  nibble 1   rA / cond / port
-    bit 15-12  nibble 2
-    bit 11-8   nibble 3
-    bit 7-4    nibble 4
-    bit 3-0    nibble 5
-
-Parole ROM (allineamento in basso, vedi HIGH_ALIGN sotto):
-    alta  = (opcode << 4) | nibble1             i 4 bit alti restano a zero
-    bassa = bit 15-0 dell'istruzione
-
-Per ispezionare l'encoding campo per campo:
-    python3 parallax_asm.py programma.asm --listing
+Parallax V2 assembler
 """
 
 import argparse
@@ -36,44 +8,12 @@ import os
 import re
 import sys
 
-# --------------------------------------------------------------------------
-# CONFIGURAZIONE — l'unico blocco da toccare se il cablaggio differisce
-# --------------------------------------------------------------------------
-
-# Allineamento dei 12 bit utili (opcode + nibble 1) nella parola a 16 bit
-# della ROM alta.
-#
-#   "left"   opcode nei bit 15-8, nibble 1 nei bit 7-4, bit 3-0 inutilizzati
-#            LDI r1  ->  1110
-#
-#   "right"  bit 15-12 inutilizzati, opcode nei bit 11-4, nibble 1 nei bit 3-0
-#            LDI r1  ->  0111
-#
-# Se tutte le istruzioni scrivono su r0, e' probabilmente questo il valore
-# sbagliato: il nibble 1 viene letto da una posizione diversa da dove
-# l'assemblatore lo scrive.
 HIGH_ALIGN = "right"
 
-# Posizione del campo porta in PSR / PLR.
-# Default: registro nel nibble 1, porta nel nibble 2.
-# Se sul circuito la porta sta nel nibble 3, metti PORT_SHIFT = 8.
 PORT_SHIFT = 12
 
 MAX_INSTRUCTIONS = 256
 
-# --------------------------------------------------------------------------
-# ISA
-# --------------------------------------------------------------------------
-
-# nome: (opcode, forma)
-#   rrr   rA, rB, rC      n1=rA   low = rB<<12 | rC<<8
-#   rr    rA, rC          n1=rA   low = rC<<8            (rB inutilizzato)
-#   none  nessun operando
-#   ri    rA, imm16       n1=rA   low = imm16
-#   j     addr            n1=0    low = addr
-#   cj    cond, addr      n1=cond low = addr
-#   pi    port, addr      n1=port low = addr
-#   rp    rA, port        n1=rA   low = port << PORT_SHIFT
 ISA = {
     "ADD":    (0x00, "rrr"),
     "SUB":    (0x01, "rrr"),
@@ -104,13 +44,11 @@ ISA = {
     "PLR":    (0x1A, "rp"),
 }
 
-# Pseudo-istruzioni rese possibili dallo zero register.
-# nome: (istruzione reale, template operandi con $0, $1 = argomenti)
 PSEUDO = {
     "MOV": ("ADD", ["r0", "$0", "$1"]),   # MOV rS, rD   ->  rD = rS
     "CLR": ("ADD", ["r0", "r0", "$0"]),   # CLR rD       ->  rD = 0
     "NEG": ("SUB", ["r0", "$0", "$1"]),   # NEG rS, rD   ->  rD = -rS
-    "CMP": ("SUB", ["$0", "$1", "r0"]),   # CMP rA, rB   ->  solo flag
+    "CMP": ("SUB", ["$0", "$1", "r0"]),   # CMP rA, rB   ->  only flags
 }
 
 CONDITIONS = {
@@ -129,11 +67,6 @@ PSEUDO_ARITY = {"MOV": 2, "CLR": 1, "NEG": 2, "CMP": 2}
 
 class AsmError(Exception):
     pass
-
-
-# --------------------------------------------------------------------------
-# Parsing degli operandi
-# --------------------------------------------------------------------------
 
 def parse_register(tok):
     m = re.fullmatch(r"[rR](\d{1,2})", tok)
@@ -199,11 +132,6 @@ def parse_address(tok, labels):
             f"indirizzo fuori intervallo: '{tok}' (0-{MAX_INSTRUCTIONS - 1})")
     return v
 
-
-# --------------------------------------------------------------------------
-# Tokenizzazione
-# --------------------------------------------------------------------------
-
 def strip_comment(line):
     for marker in (";", "//", "#"):
         idx = line.find(marker)
@@ -231,11 +159,6 @@ def expand_pseudo(mnem, ops):
         else:
             out.append(slot)
     return real, out
-
-
-# --------------------------------------------------------------------------
-# Encoding
-# --------------------------------------------------------------------------
 
 def pack_high(opcode, n1):
     """Compone la parola della ROM alta secondo l'allineamento configurato."""
@@ -280,11 +203,6 @@ def encode(mnem, ops, labels):
 
     high = pack_high(opcode, n1)
     return high, low
-
-
-# --------------------------------------------------------------------------
-# Passate
-# --------------------------------------------------------------------------
 
 def first_pass(lines):
     """Raccoglie le label e la lista delle istruzioni con il numero di riga."""
@@ -341,11 +259,6 @@ def second_pass(program, labels):
             errors.append(f"riga {lineno}: {e}")
             words.append((0, 0))
     return words, errors
-
-
-# --------------------------------------------------------------------------
-# Output
-# --------------------------------------------------------------------------
 
 def listing(words, program):
     """Stampa i campi separati, per controllare il cablaggio a colpo d'occhio."""
