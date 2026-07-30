@@ -65,7 +65,6 @@ matching representation in the ROM editor.
 |---|---|
 | [`docs/isa.md`](docs/isa.md) | instruction set reference |
 | [`docs/assembly.md`](docs/assembly.md) | writing programs — syntax, idioms, gotchas |
-| [`docs/spec.md`](docs/spec.md) | design specification |
 | [`CHANGELOG.md`](CHANGELOG.md) | V1 → V2 |
 
 ## Versions
