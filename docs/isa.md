@@ -84,7 +84,6 @@ physical ports.
 | `100` | Zero |
 | `101` | not Carry |
 | `110` | not Zero |
-| `111` | *free* |
 
 The `cond` field is 4 bits wide, leaving room for sign and overflow flags in V3
 without changing the instruction format.
