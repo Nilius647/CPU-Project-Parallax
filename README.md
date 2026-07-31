@@ -36,7 +36,7 @@ as well be exposed.
 
 ## Instruction set
 
-Full table in [`docs/isa.md`](docs/isa.md).
+Full table in [`v2/isa.md`](v2/isa.md).
 
 ## Repository layout
 
@@ -64,9 +64,9 @@ matching representation in the ROM editor.
 
 | Document | |
 |---|---|
-| [`docs/isa.md`](docs/isa.md) | instruction set reference |
-| [`docs/assembly.md`](docs/assembly.md) | writing programs — syntax, idioms, gotchas |
-| [`CHANGELOG.md`](CHANGELOG.md) | V1 → V2 |
+| [`v2/isa.md`](v2/isa.md) | instruction set reference |
+| [`v2/assembly.md`](v2/assembly.md) | writing programs — syntax, idioms, gotchas |
+| [`v2/CHANGELOG.md`](v2/CHANGELOG.md) | V1 → V2 |
 
 ## Versions
 
@@ -74,7 +74,7 @@ matching representation in the ROM editor.
 
 **V2** — 16-bit datapath, 28-bit instructions, 256 instructions of program
 memory, zero register, latched flag register, and an assembler. Full details in
-the [changelog](CHANGELOG.md).
+the [changelog](v2/CHANGELOG.md).
 
 ## Roadmap — V3
 
