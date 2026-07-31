@@ -1,6 +1,34 @@
 #!/usr/bin/env python3
 """
-Parallax V2 assembler
+Assemblatore per Parallax V2.
+
+Uso:
+    python3 parallax_asm.py programma.asm
+    python3 parallax_asm.py programma.asm --format dec
+    python3 parallax_asm.py programma.asm -o build/
+
+Produce due file di testo, uno per chip ROM, con un numero per riga:
+
+    rom_high.txt   ->  chip ROM alta   (opcode + nibble 1)
+    rom_low.txt    ->  chip ROM bassa  (nibble 2-5)
+
+Si incollano nell'editor ROM di DLS con il pulsante paste, dopo aver
+selezionato la stessa rappresentazione usata qui (default: esadecimale).
+
+Formato istruzione (28 bit):
+    bit 27-20  opcode
+    bit 19-16  nibble 1   rA / cond / port
+    bit 15-12  nibble 2
+    bit 11-8   nibble 3
+    bit 7-4    nibble 4
+    bit 3-0    nibble 5
+
+Parole ROM (allineamento in basso, vedi HIGH_ALIGN sotto):
+    alta  = (opcode << 4) | nibble1             i 4 bit alti restano a zero
+    bassa = bit 15-0 dell'istruzione
+
+Per ispezionare l'encoding campo per campo:
+    python3 parallax_asm.py programma.asm --listing
 """
 
 import argparse
@@ -8,12 +36,55 @@ import os
 import re
 import sys
 
+# --------------------------------------------------------------------------
+# CONFIGURAZIONE — l'unico blocco da toccare se il cablaggio differisce
+# --------------------------------------------------------------------------
+
+# Allineamento dei 12 bit utili (opcode + nibble 1) nella parola a 16 bit
+# della ROM alta.
+#
+#   "left"   opcode nei bit 15-8, nibble 1 nei bit 7-4, bit 3-0 inutilizzati
+#            LDI r1  ->  1110
+#
+#   "right"  bit 15-12 inutilizzati, opcode nei bit 11-4, nibble 1 nei bit 3-0
+#            LDI r1  ->  0111
+#
+# Se tutte le istruzioni scrivono su r0, e' probabilmente questo il valore
+# sbagliato: il nibble 1 viene letto da una posizione diversa da dove
+# l'assemblatore lo scrive.
 HIGH_ALIGN = "right"
 
+# Posizione del campo indirizzo dentro la parola bassa.
+#
+#   8  ->  indirizzo nei nibble 2-3 (bit 15-8), nibble 4-5 vuoti
+#   0  ->  indirizzo nei nibble 4-5 (bit 7-0),  nibble 2-3 vuoti
+#
+# Gli immediati di LDI e ADI NON sono influenzati: occupano sempre tutti e
+# quattro i nibble (bit 15-0).
+BRANCH_ADDR_SHIFT = 8      # indirizzi di JMP / BRH
+MEM_ADDR_SHIFT = 8         # indirizzi di STR / LOD / PSM / PLM
+
+# Posizione del campo porta in PSR / PLR.
+# Default: registro nel nibble 1, porta nel nibble 2.
+# Se sul circuito la porta sta nel nibble 3, metti PORT_SHIFT = 8.
 PORT_SHIFT = 12
 
 MAX_INSTRUCTIONS = 256
 
+# --------------------------------------------------------------------------
+# ISA
+# --------------------------------------------------------------------------
+
+# nome: (opcode, forma)
+#   rrr   rA, rB, rC      n1=rA   low = rB<<12 | rC<<8
+#   rr    rA, rC          n1=rA   low = rC<<8            (rB inutilizzato)
+#   none  nessun operando
+#   ri    rA, imm16       n1=rA   low = imm16              (nessuno shift)
+#   ra    rA, addr        n1=rA   low = addr << MEM_ADDR_SHIFT
+#   j     addr            n1=0    low = addr << BRANCH_ADDR_SHIFT
+#   cj    cond, addr      n1=cond low = addr << BRANCH_ADDR_SHIFT
+#   pa    port, addr      n1=port low = addr << MEM_ADDR_SHIFT
+#   rp    rA, port        n1=rA   low = port << PORT_SHIFT
 ISA = {
     "ADD":    (0x00, "rrr"),
     "SUB":    (0x01, "rrr"),
@@ -36,19 +107,21 @@ ISA = {
     "ADI":    (0x12, "ri"),
     "JMP":    (0x13, "j"),
     "BRH":    (0x14, "cj"),
-    "STR":    (0x15, "ri"),
-    "LOD":    (0x16, "ri"),
-    "PSM":    (0x17, "pi"),
-    "PLM":    (0x18, "pi"),
+    "STR":    (0x15, "ra"),
+    "LOD":    (0x16, "ra"),
+    "PSM":    (0x17, "pa"),
+    "PLM":    (0x18, "pa"),
     "PSR":    (0x19, "rp"),
     "PLR":    (0x1A, "rp"),
 }
 
+# Pseudo-istruzioni rese possibili dallo zero register.
+# nome: (istruzione reale, template operandi con $0, $1 = argomenti)
 PSEUDO = {
     "MOV": ("ADD", ["r0", "$0", "$1"]),   # MOV rS, rD   ->  rD = rS
     "CLR": ("ADD", ["r0", "r0", "$0"]),   # CLR rD       ->  rD = 0
     "NEG": ("SUB", ["r0", "$0", "$1"]),   # NEG rS, rD   ->  rD = -rS
-    "CMP": ("SUB", ["$0", "$1", "r0"]),   # CMP rA, rB   ->  only flags
+    "CMP": ("SUB", ["$0", "$1", "r0"]),   # CMP rA, rB   ->  solo flag
 }
 
 CONDITIONS = {
@@ -61,12 +134,18 @@ CONDITIONS = {
     "NZ": 0b110,
 }
 
-ARITY = {"rrr": 3, "rr": 2, "none": 0, "ri": 2, "j": 1, "cj": 2, "pi": 2, "rp": 2}
+ARITY = {"rrr": 3, "rr": 2, "none": 0, "ri": 2, "ra": 2,
+         "j": 1, "cj": 2, "pa": 2, "rp": 2}
 PSEUDO_ARITY = {"MOV": 2, "CLR": 1, "NEG": 2, "CMP": 2}
 
 
 class AsmError(Exception):
     pass
+
+
+# --------------------------------------------------------------------------
+# Parsing degli operandi
+# --------------------------------------------------------------------------
 
 def parse_register(tok):
     m = re.fullmatch(r"[rR](\d{1,2})", tok)
@@ -121,6 +200,14 @@ def parse_condition(tok):
     raise AsmError(f"condizione non valida: '{tok}' (valide: {valid})")
 
 
+def pack_addr(value, shift, tok):
+    """Colloca un indirizzo nella parola bassa secondo lo shift configurato."""
+    limit = 0xFFFF >> shift
+    if not 0 <= value <= limit:
+        raise AsmError(f"indirizzo fuori intervallo: '{tok}' (0-{limit})")
+    return value << shift
+
+
 def parse_address(tok, labels):
     if tok in labels:
         return labels[tok]
@@ -131,6 +218,11 @@ def parse_address(tok, labels):
         raise AsmError(
             f"indirizzo fuori intervallo: '{tok}' (0-{MAX_INSTRUCTIONS - 1})")
     return v
+
+
+# --------------------------------------------------------------------------
+# Tokenizzazione
+# --------------------------------------------------------------------------
 
 def strip_comment(line):
     for marker in (";", "//", "#"):
@@ -159,6 +251,11 @@ def expand_pseudo(mnem, ops):
         else:
             out.append(slot)
     return real, out
+
+
+# --------------------------------------------------------------------------
+# Encoding
+# --------------------------------------------------------------------------
 
 def pack_high(opcode, n1):
     """Compone la parola della ROM alta secondo l'allineamento configurato."""
@@ -189,20 +286,28 @@ def encode(mnem, ops, labels):
     elif form == "ri":
         n1 = parse_register(ops[0])
         low = to_u16(parse_number(ops[1]), ops[1])
+    elif form == "ra":
+        n1 = parse_register(ops[0])
+        low = pack_addr(parse_number(ops[1]), MEM_ADDR_SHIFT, ops[1])
     elif form == "j":
-        low = parse_address(ops[0], labels)
+        low = pack_addr(parse_address(ops[0], labels), BRANCH_ADDR_SHIFT, ops[0])
     elif form == "cj":
         n1 = parse_condition(ops[0])
-        low = parse_address(ops[1], labels)
-    elif form == "pi":
+        low = pack_addr(parse_address(ops[1], labels), BRANCH_ADDR_SHIFT, ops[1])
+    elif form == "pa":
         n1 = parse_nibble(ops[0], "porta")
-        low = to_u16(parse_number(ops[1]), ops[1])
+        low = pack_addr(parse_number(ops[1]), MEM_ADDR_SHIFT, ops[1])
     elif form == "rp":
         n1 = parse_register(ops[0])
         low = parse_nibble(ops[1], "porta") << PORT_SHIFT
 
     high = pack_high(opcode, n1)
     return high, low
+
+
+# --------------------------------------------------------------------------
+# Passate
+# --------------------------------------------------------------------------
 
 def first_pass(lines):
     """Raccoglie le label e la lista delle istruzioni con il numero di riga."""
@@ -259,6 +364,11 @@ def second_pass(program, labels):
             errors.append(f"riga {lineno}: {e}")
             words.append((0, 0))
     return words, errors
+
+
+# --------------------------------------------------------------------------
+# Output
+# --------------------------------------------------------------------------
 
 def listing(words, program):
     """Stampa i campi separati, per controllare il cablaggio a colpo d'occhio."""
