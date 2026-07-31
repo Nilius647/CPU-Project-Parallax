@@ -1,6 +1,7 @@
 # Parallax
 
-A 16-bit CPU built from NAND gates up, in [Digital Logic Sim](https://sebastian.itch.io/digital-logic-sim), version 2.1.6, with [community mod](https://github.com/firecerne/Digital-Logic-Sim-Community-Edit/releases/tag/v1.2.1) version 1.2.1 
+A 16-bit CPU built from NAND gates up, in [Digital Logic Sim](https://sebastian.itch.io/digital-logic-sim), version 2.1.6, with [community mod](https://github.com/firecerne/Digital-Logic-Sim-Community-Edit/releases/tag/v1.2.1) version 1.2.1.
+Project download is in releases.
 
 ---
 
