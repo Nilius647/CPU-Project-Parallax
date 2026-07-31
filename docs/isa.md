@@ -7,8 +7,19 @@
 ```
 Format R (ALU)          [ opcode 8 ][ rA 4 ][ rB 4 ][ rC 4 ][ ---- 8 ]
 Format I (immediate)    [ opcode 8 ][ rA 4 ][      imm16       ]
-Format J (branch)       [ opcode 8 ][ cond 4 ][    addr16      ]
+Format J (branch)       [ opcode 8 ][ cond 4 ][ addr 8 ][ ---- 8 ]
 ```
+
+Addresses occupy bits 15-8; immediates occupy all sixteen.
+
+| Instructions | Field | Bits | Nibbles |
+|---|---|---|---|
+| `LDI`, `ADI` | 16-bit immediate | 15-0 | 2, 3, 4, 5 |
+| `JMP`, `BRH` | 8-bit program address | 15-8 | 2, 3 |
+| `STR`, `LOD`, `PSM`, `PLM` | 8-bit memory address | 15-8 | 2, 3 |
+
+Both the PC and RAM have 256 locations, so eight bits are enough: nibbles 4 and
+5 stay empty in address-carrying instructions.
 
 | Field | Bits |
 |---|---|
@@ -55,7 +66,7 @@ The low nibble of the opcode is the ALU function select: the 15 ALU functions
 occupy `0x00`–`0x0E` in the same order the ALU selects them, so `opcode[3:0]`
 drives the function input directly with no decoding.
 
-`PSM` / `PLM` place a 4-bit port field in nibble 1, followed by the 8-bit
+`PSM` / `PLM` place a 4-bit port field in nibble 1, followed by the 16-bit
 address. `PSR` / `PLR` use two 4-bit fields: register in nibble 1, port in
 nibble 2.
 
@@ -73,6 +84,7 @@ physical ports.
 | `100` | Zero |
 | `101` | not Carry |
 | `110` | not Zero |
+| `111` | *free* |
 
 The `cond` field is 4 bits wide, leaving room for sign and overflow flags in V3
 without changing the instruction format.
