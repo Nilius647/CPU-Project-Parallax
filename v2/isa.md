@@ -66,9 +66,9 @@ The low nibble of the opcode is the ALU function select: the 15 ALU functions
 occupy `0x00`–`0x0E` in the same order the ALU selects them, so `opcode[3:0]`
 drives the function input directly with no decoding.
 
-`PSM` / `PLM` place a 4-bit port field in nibble 1, followed by the 16-bit
-address. `PSR` / `PLR` use two 4-bit fields: register in nibble 1, port in
-nibble 2.
+`PSM` / `PLM` place a 4-bit port field in nibble 1, followed by the address.
+`PSR` / `PLR` leave nibble 1 empty and use two 4-bit fields: register in
+nibble 2, port in nibble 3.
 
 Input and output ports are separate spaces — `IN[3]` and `OUT[3]` are different
 physical ports.
@@ -84,6 +84,7 @@ physical ports.
 | `100` | Zero |
 | `101` | not Carry |
 | `110` | not Zero |
+| `111` | *free* |
 
 The `cond` field is 4 bits wide, leaving room for sign and overflow flags in V3
 without changing the instruction format.
@@ -98,7 +99,7 @@ hardwired to zero.
 
 | Written | Expands to | Effect |
 |---|---|---|
-| `MOV rS, rD` | `ADD r0, rS, rD` | rD = rS |
+| `MOV rS, rD` | `ADD rS, r0, rD` | rD = rS |
 | `CLR rD` | `ADD r0, r0, rD` | rD = 0 |
 | `NEG rS, rD` | `SUB r0, rS, rD` | rD = −rS |
 | `CMP rA, rB` | `SUB rA, rB, r0` | flags only, no write |
