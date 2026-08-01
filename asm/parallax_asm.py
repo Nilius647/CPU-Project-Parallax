@@ -63,10 +63,11 @@ HIGH_ALIGN = "right"
 BRANCH_ADDR_SHIFT = 8      # JMP / BRH addresses
 MEM_ADDR_SHIFT = 8         # STR / LOD / PSM / PLM addresses
 
-# Position of the port field in PSR / PLR.
-# Default: register in nibble 1, port in nibble 2.
-# If the port sits in nibble 3 on the circuit, set PORT_SHIFT = 8.
-PORT_SHIFT = 12
+# Position of the register and port fields in PSR / PLR.
+# The spreadsheet places the register in nibble 2 and the port in nibble 3,
+# leaving nibble 1 empty.
+PSR_REG_SHIFT = 12
+PORT_SHIFT = 8
 
 MAX_INSTRUCTIONS = 256
 
@@ -83,7 +84,7 @@ MAX_INSTRUCTIONS = 256
 #   j     addr            n1=0    low = addr << BRANCH_ADDR_SHIFT
 #   cj    cond, addr      n1=cond low = addr << BRANCH_ADDR_SHIFT
 #   pa    port, addr      n1=port low = addr << MEM_ADDR_SHIFT
-#   rp    rA, port        n1=rA   low = port << PORT_SHIFT
+#   rp    rA, port        n1=0    low = rA<<PSR_REG_SHIFT | port<<PORT_SHIFT
 ISA = {
     "ADD":    (0x00, "rrr"),
     "SUB":    (0x01, "rrr"),
@@ -117,7 +118,7 @@ ISA = {
 # Pseudo-instructions, made possible by the zero register.
 # name: (real instruction, operand template where $0, $1 are the arguments)
 PSEUDO = {
-    "MOV": ("ADD", ["r0", "$0", "$1"]),   # MOV rS, rD   ->  rD = rS
+    "MOV": ("ADD", ["$0", "r0", "$1"]),   # MOV rS, rD   ->  rD = rS
     "CLR": ("ADD", ["r0", "r0", "$0"]),   # CLR rD       ->  rD = 0
     "NEG": ("SUB", ["r0", "$0", "$1"]),   # NEG rS, rD   ->  rD = -rS
     "CMP": ("SUB", ["$0", "$1", "r0"]),   # CMP rA, rB   ->  flags only
@@ -296,8 +297,8 @@ def encode(mnem, ops, labels):
         n1 = parse_nibble(ops[0], "port")
         low = pack_addr(parse_number(ops[1]), MEM_ADDR_SHIFT, ops[1])
     elif form == "rp":
-        n1 = parse_register(ops[0])
-        low = parse_nibble(ops[1], "port") << PORT_SHIFT
+        low = ((parse_register(ops[0]) << PSR_REG_SHIFT)
+               | (parse_nibble(ops[1], "port") << PORT_SHIFT))
 
     high = pack_high(opcode, n1)
     return high, low
