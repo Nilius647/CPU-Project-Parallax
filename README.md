@@ -39,8 +39,9 @@ Full table in [`v3/isa.md`](v3/isa.md).
 ## Repository layout
 
 ```
-docs/           specification, assembly guide, ISA reference
-asm/            assemblers (Python, no dependencies) — one per ISA version
+v2/          specification, assembly guide, ISA reference for parallax v2
+v3/          specification, assembly guide, ISA reference for parallax v3
+asm/         assemblers (Python, no dependencies) — one per ISA version
 ```
 
 ## Assembling a program
