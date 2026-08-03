@@ -2,7 +2,118 @@
 
 ---
 
-## V2 — in development
+## V3 — complete
+
+Three additions on top of the V2 datapath: multiplication, pointers and
+subroutines. Datapath width, register file, instruction word and instruction
+memory are unchanged. Opcodes are renumbered, so V2 machine code does not run on
+V3 — the source does.
+
+Instruction count goes from 27 to **33**.
+
+### Added
+
+**Multiplication**
+
+- **`MUL rA, rB, rC`** — fills the sixteenth ALU function slot, the last one
+  free. The product of two 16-bit values takes 32 bits, so `MUL` returns the low
+  half only.
+- **`ov` flag, condition code `111`** — raised when the high half of the product
+  is non-zero. The last free code in the 4-bit `cond` field, so overflow is
+  testable with `BRH ov, label` and the carry keeps its single meaning.
+
+**Pointers**
+
+- **`LDP rA, rB`** and **`STP rA, rB`** — load and store where the address comes
+  from a register instead of from the instruction. This is what makes arrays,
+  strings and any data-driven code possible: the pointer is an ordinary register,
+  so `INC`, `ADD` and `CMP` all work on it.
+- **`JMR rA`** — computed jump, for jump tables. The register is 16-bit and the
+  PC is 8-bit, so the low 8 bits are used.
+
+**Subroutines**
+
+- **`CAL addr`** and **`RET`** — call and return, backed by a dedicated hardware
+  return stack: 16 levels, separate from main RAM, with a 4-bit up/down counter
+  as stack pointer. Neither instruction touches any register.
+
+### Changed
+
+| | V2 | V3 |
+|---|---|---|
+| Instructions | 27 | **33** |
+| ALU functions | 15 | **16** |
+| Flags | 7 | **8** |
+| Memory address field | 8-bit, nibbles 2-3 | **16-bit, nibbles 2-5** |
+| Address space | 256 words | **65536 words** |
+| RAM installed | 256 words (512 B) | **1024 words (2 KB)** |
+| `PCaddress mux` | 3 sources, 2 select bits | **5 sources, 3 select bits** |
+| RAM address source | instruction field only | **instruction field or register** |
+| Opcodes | `0x00`–`0x1A` | **`0x00`–`0x20`, renumbered** |
+
+**Opcodes renumbered.** Still sequential with no gaps. The ALU block keeps the
+first sixteen slots, so `opcode[3:0]` remains the ALU function select — and with
+`MUL` filling slot 15 and `NOP` moved to `0x10`, `opcode[7:4] == 0` now means
+"ALU operation" with no exception at all.
+
+**Memory addresses widened.** `STR`, `LOD`, `PSM` and `PLM` now carry a full
+16-bit address across nibbles 2-5, sharing the extraction path with the
+`LDI` / `ADI` immediate. Program addresses (`JMP`, `BRH`, `CAL`) stay 8-bit in
+nibbles 2-3.
+
+**Address space and installed memory are now distinct.** The ISA addresses 65536
+words; the machine installs 1024 (2 KB), valid range `0x0000`–`0x03FF`. Access
+beyond that wraps to the start of memory rather than raising anything. More banks
+can be attached later without touching the ISA or the assembler.
+
+### New control signals
+
+- **RAM address mux** — one bit, set only for `LDP` and `STP`
+- **Stack push / pop** — set for `CAL` and `RET` respectively
+
+`CAL` does not add a `PCaddress mux` source: it uses the same one as `JMP`, and
+additionally writes to the stack. Only `RET` reads from the stack, so only `RET`
+needs a source of its own.
+
+### Unchanged
+
+- 16-bit datapath, 16 registers, `r0` hardwired to zero
+- 28-bit instruction word, three formats
+- 256 instructions of program memory, 8-bit PC
+- 32 ports: 16 in, 16 out
+- Harvard architecture, single-cycle, not pipelined
+- Comparisons remain unsigned; no sign flag
+
+### Tooling
+
+- **`parallax_asm_v3.py`** — separate from the V2 assembler, since the opcodes
+  are incompatible. Adds the six new mnemonics, the `ov` condition, 16-bit memory
+  addresses, and labels usable as immediates (`LDI r1, routine` then `JMR r1`,
+  which is what makes jump tables buildable).
+
+### Deferred to V4
+
+- Larger instruction memory, 16-bit program addresses
+- Pointer offsets — `LDP rA, rB, imm8`
+- Data stack with `PSH` / `POP`, and local variables for recursion
+- `SUI`
+- Sign flag and arithmetic overflow flag, to be added together
+- Stack full / empty flags
+- Carry-lookahead adder in place of the ripple-carry
+- Pipelining
+
+### Known limits
+
+- The return stack wraps silently on the seventeenth nested `CAL`, and a `RET`
+  without a matching `CAL` returns to an arbitrary address.
+- With no data stack, there is no mechanism to save registers across a call: the
+  caller must know what each subroutine clobbers.
+- The zero flag after a `MUL` refers to the low 16 bits only, so it can be raised
+  on a non-zero product.
+
+---
+
+## V2 — complete
 
 Datapath widened to 16 bits and instruction word to 28 bits. The ISA stays
 functionally identical to V1 — same 27 instructions, same mnemonics, same
@@ -101,19 +212,23 @@ Two consequences worth keeping in mind:
 - Harvard architecture, separate instruction and data memory
 - The 7 flags and their codes (no flag added: see *Deferred to V3*)
 
-### Deferred to V3
+### Deferred
 
-- Hardware return stack + `CAL` / `RET`
-- Data stack + `PSH` / `POP`
-- Indirect addressing `LDP` / `STP`
-- Indirect jump `JMR` for jump tables
-- `SUI`
-- Sign flag (N) **and overflow flag (V), to be added together** — the 4-bit
-  `cond` field already has room. V on its own would be dead hardware: its point
-  is signed comparison, which is expressed as `N XOR V`
-- Reserved gaps between opcode blocks (the ALU block is already aligned in V2;
-  what is missing is free space between immediates, branches, memory and ports)
-- Carry-lookahead adder in place of the ripple-carry
+Predictions made at the time of V2. What actually happened:
+
+| | Outcome |
+|---|---|
+| Return stack + `CAL` / `RET` | done in V3 |
+| Indirect addressing `LDP` / `STP` | done in V3 |
+| Indirect jump `JMR` | done in V3 |
+| Data stack + `PSH` / `POP` | deferred to V4 |
+| `SUI` | deferred to V4 |
+| Sign flag and arithmetic overflow | deferred to V4 |
+| Carry-lookahead adder | deferred to V4 |
+| Reserved gaps between opcode blocks | **dropped** — the ISA stays sequential |
+
+Not predicted, and added in V3 anyway: multiplication, with its product-overflow
+flag.
 
 ---
 
