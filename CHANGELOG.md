@@ -56,6 +56,10 @@ first sixteen slots, so `opcode[3:0]` remains the ALU function select — and wi
 `MUL` filling slot 15 and `NOP` moved to `0x10`, `opcode[7:4] == 0` now means
 "ALU operation" with no exception at all.
 
+Everything from `NOP` onwards shifts by one: `NOP` `0x0F`→`0x10`, `LDI`
+`0x11`→`0x12`, and so on to `PLR` at `0x1E`. `CAL` and `RET` take `0x1F` and
+`0x20`.
+
 **Memory addresses widened.** `STR`, `LOD`, `PSM` and `PLM` now carry a full
 16-bit address across nibbles 2-5, sharing the extraction path with the
 `LDI` / `ADI` immediate. Program addresses (`JMP`, `BRH`, `CAL`) stay 8-bit in
@@ -84,6 +88,19 @@ needs a source of its own.
 - Harvard architecture, single-cycle, not pipelined
 - Comparisons remain unsigned; no sign flag
 
+### Fixed
+
+- **`PSR` / `PLR` field placement** — both assemblers placed the register in
+  nibble 1 and the port in nibble 2. Cross-checked against the control-ROM
+  spreadsheet, the real wiring leaves nibble 1 empty and places the register
+  in nibble 2, the port in nibble 3. Corrected in both `parallax_asm.py` and
+  `parallax_asm_v3.py` — any program using `PSR` or `PLR` assembled before
+  this fix needs reassembling.
+- **`MOV` pseudo-instruction expansion** — expanded as `ADD r0, rS, rD`; the
+  spreadsheet places the explicit source operand in nibble 1, so the correct
+  expansion is `ADD rS, r0, rD`. Same result either way (addition is
+  commutative), corrected for consistency with the actual wiring.
+
 ### Tooling
 
 - **`parallax_asm_v3.py`** — separate from the V2 assembler, since the opcodes
@@ -105,7 +122,8 @@ needs a source of its own.
 ### Known limits
 
 - The return stack wraps silently on the seventeenth nested `CAL`, and a `RET`
-  without a matching `CAL` returns to an arbitrary address.
+  without a matching `CAL` returns to an arbitrary address. No flag signals
+  either.
 - With no data stack, there is no mechanism to save registers across a call: the
   caller must know what each subroutine clobbers.
 - The zero flag after a `MUL` refers to the low 16 bits only, so it can be raised

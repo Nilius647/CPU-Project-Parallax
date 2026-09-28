@@ -6,16 +6,9 @@ A 16-bit CPU built from NAND gates up, in [Digital Logic Sim](https://sebastian.
 
 ## What it is
 
-Parallax is a Harvard, load-store, register-register machine with fixed-length
-instructions — a RISC-like 16-bit CPU. Only loads and stores touch memory; every
-ALU operation works on registers, with three operands and a hardwired zero
-register in the MIPS/RISC-V tradition. Instructions are 28 bits in three
-formats, and I/O lives in a port space separate from memory, the way `IN`/`OUT`
-work on x86.
+Parallax is a Harvard, load-store, register-register machine with fixed-length instructions — a RISC-like 16-bit CPU. Only loads and stores touch memory; every ALU operation works on registers, with three operands and a hardwired zero register. Instructions are 28 bits in three formats, and I/O lives in a port space separate from memory.
 
-Where it is unusual is the logic set. `IMPLY`, `NIMPLY`, `NAND`, `NOR` and
-`XNOR` exist as separate instructions, which no commercial ISA bothers with:
-they implement two or three and synthesise the rest.
+Where it is unusual is the logic set. `IMPLY`, `NIMPLY`, `NAND`, `NOR` and `XNOR` exist as separate instructions, which no commercial ISA bothers with: they implement two or three and synthesise the rest. That is the signature of a CPU built from NAND gates up, where those functions cost almost nothing.
 
 ## Specifications
 
@@ -34,14 +27,22 @@ they implement two or three and synthesise the rest.
 
 ## Instruction set
 
-Full table in [`v3/isa.md`](v3/isa.md).
+Full table in [`toolchain/v3/isa.md`](toolchain/v3/isa.md).
 
 ## Repository layout
 
 ```
-v2/          specification, assembly guide, ISA reference for parallax v2
-v3/          specification, assembly guide, ISA reference for parallax v3
-asm/         assemblers (Python, no dependencies) — one per ISA version
+toolchain/            ISA, assemblers, programs and other files
+  asm/            
+    assemblers/       Python assemblers
+    examples/         Example programs
+    tests/            Test programs
+  v2/
+  v3/
+dls.md
+CHANGELOG.md
+README.md
+LICENSE
 ```
 
 ## Assembling a program
@@ -49,26 +50,32 @@ asm/         assemblers (Python, no dependencies) — one per ISA version
 The assembler needs Python 3 and nothing else.
 
 ```
-python3 asm/parallax_asm_v3.py (FILE NAME) --format bin -o build/
+python3 toolchain/asm/parallax_asm_v3.py toolchain/programs/examples/sum_array.asm --format bin -o build/
 ```
 
-This produces `build/rom_high.txt` and `build/rom_low.txt` — one number per
+This produces `build/rom_high.txt` and `build/rom_low.txt`, one number per
 line. Paste each into its ROM chip in Digital Logic Sim, after selecting the
 matching representation in the ROM editor.
 
 To inspect the encoding field by field:
 
 ```
-python3 asm/parallax_asm_v3.py (FILE NAME) --listing
+python3 toolchain/asm/parallax_asm_v3.py toolchain/programs/examples/sum_array.asm --listing
+```
+
+```
+idx   --   opcode   n1     n2   n3   n4   n5     source
+  0   0000 00010010 0001     0000 0001 0000 0000     LDI  r1, 0x0100
 ```
 
 ## Documentation
 
 | Document | |
 |---|---|
-| [`v3/isa.md`](v3/isa.md) | instruction set reference — the full table |
-| [`v2/assembly-v2.md`](v2/assembly-v2.md) | writing programs: syntax, registers, arithmetic, logic, memory, ports |
-| [`v3/assembly-v3.md`](v3/assembly-v3.md) | what V3 adds: multiply, pointers, subroutines, computed jumps |
+| [`toolchain/isa.md`](toolchain/isa.md) | instruction set reference — the full table |
+| [`toolchain/v2/assembly_V2.md`](toolchain/v2/assembly_V2.md) | writing programs: syntax, registers, arithmetic, logic, memory, ports |
+| [`toolchain/v3/assembly_V3.md`](toolchain/v3/assembly_V3_.md) | what V3 adds: multiply, pointers, subroutines, computed jumps |
+| [`dls.md`](dls.md) | design specification — wiring, control signals |
 | [`CHANGELOG.md`](CHANGELOG.md) | V1 → V2 → V3 |
 
 The V3 guide is a delta: it covers only the new instructions, so the V2 guide
@@ -96,7 +103,7 @@ return stack, and 16-bit memory addresses. Full details in the
   comparison (`N XOR V`)
 - **Larger instruction memory** with 16-bit program addresses; the encoding is
   already in place
-- `SUI`, and `MULH` for the high half of a product
+- `SUI`
 - Carry-lookahead adder to replace the ripple-carry, and eventually pipelining
 
 ## License
