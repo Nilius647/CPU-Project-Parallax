@@ -2,6 +2,8 @@
 
 Reference for writing programs to be assembled with `parallax_asm.py`.
 
+> **If you are programming V3**, most of this guide still applies — syntax, registers, arithmetic, logic, ports, pseudo-instructions — but §8 "Limits" is superseded: V3 has pointers, subroutines, `MUL` and 1024 words of RAM. See the V3 guide for the differences.
+
 ---
 
 ## 1. File structure
@@ -18,11 +20,9 @@ loop:
 ```
 
 - **Comments**: `;`, `//` or `#`, to end of line
-- **Labels**: a name followed by a colon. They stand for the address of the
-  instruction that follows, not for a value
+- **Labels**: a name followed by a colon. They stand for the address of the instruction that follows, not for a value
 - **Case**: irrelevant. `ldi`, `LDI` and `Ldi` are the same
-- **Separators**: commas or spaces, both accepted. `ADD r1, r2, r3` and
-  `ADD r1 r2 r3` are identical
+- **Separators**: commas or spaces, both accepted. `ADD r1, r2, r3` and `ADD r1 r2 r3` are identical
 - **Indentation**: free, ignored
 
 ### Numbers
@@ -48,9 +48,7 @@ The destination is not always in the same position — it depends on the instruc
 | Memory read | `LOD rA, addr` | **first** — `rA = MEM[addr]` |
 | Memory write | `STR rA, addr` | none — `rA` is the source |
 
-Rule of thumb: in ALU operations the destination comes last; everywhere else the
-first register named is the one that changes — except `STR`, where it is the
-source.
+Rule of thumb: in ALU operations the destination comes last; everywhere else the first register named is the one that changes — except `STR`, where it is the source.
 
 ---
 
@@ -58,12 +56,9 @@ source.
 
 Sixteen registers, `r0` through `r15`, 16 bits each.
 
-**`r0` is always zero.** It holds nothing: reading it yields 0, writing to it has
-no effect.
+**`r0` is always zero.** It holds nothing: reading it yields 0, writing to it has no effect.
 
-The other fifteen are free. With no subroutines there is no calling convention to
-follow, so use them as you like — but keep a comment at the top of the program
-saying what holds what, because fifteen unnamed registers get confusing fast.
+The other fifteen are free. With no subroutines there is no calling convention to follow, so use them as you like — but keep a comment at the top of the program saying what holds what, because fifteen unnamed registers get confusing fast.
 
 ---
 
@@ -79,8 +74,7 @@ saying what holds what, because fifteen unnamed registers get confusing fast.
         ADI  r1, 100        ; r1 = r1 + 100   (the immediate may be negative)
 ```
 
-`ADI` is the only instruction that adds an immediate to a register. There is no
-`SUI`: to subtract a constant, use `ADI` with a negative value.
+`ADI` is the only instruction that adds an immediate to a register. There is no `SUI`: to subtract a constant, use `ADI` with a negative value.
 
 ```
         ADI  r1, -5         ; r1 = r1 - 5
@@ -116,8 +110,7 @@ One position per instruction. Shifting by n positions takes n instructions.
         LDI  r2, 0b1010     ; r2 = 10
 ```
 
-The immediate is a full 16 bits: one `LDI` loads any value in a single
-instruction.
+The immediate is a full 16 bits: one `LDI` loads any value in a single instruction.
 
 ### Memory
 
@@ -137,8 +130,7 @@ The address is always a **constant**. There is no `LOD r1, [r2]`.
         PLM  3, 0x0010      ; MEM[16] = IN[3]
 ```
 
-Inputs and outputs are separate spaces: `OUT[3]` and `IN[3]` are physically
-different ports. What you write cannot be read back.
+Inputs and outputs are separate spaces: `OUT[3]` and `IN[3]` are physically different ports. What you write cannot be read back.
 
 ### Branches
 
@@ -154,9 +146,7 @@ different ports. What you write cannot be read back.
         HLT                 ; stops the clock
 ```
 
-**Always end programs with `HLT`.** Unused ROM cells read as zero, and zero is
-`ADD r0, r0, r0`: without `HLT` the CPU runs on through empty memory until the PC
-wraps and the program restarts.
+**Always end programs with `HLT`.** Unused ROM cells read as zero, and zero is `ADD r0, r0, r0`: without `HLT` the CPU runs on through empty memory until the PC wraps and the program restarts.
 
 ---
 
@@ -189,16 +179,11 @@ Conditions available to `BRH`:
 | `lt` | the first was less than the second |
 | `gt` | the first was greater than the second |
 
-**Comparisons are unsigned.** `lt` and `gt` treat registers as values from 0 to
-65535. If you are working with values you think of as negative, `0xFFFF` compares
-as *greater* than 1, not less.
+**Comparisons are unsigned.** `lt` and `gt` treat registers as values from 0 to 65535. If you are working with values you think of as negative, `0xFFFF` compares as *greater* than 1, not less.
 
-**Only ALU operations and `ADI` update the flags.** `LDI`, `LOD`, `STR`, the port
-instructions and the branches leave them untouched. This is useful — a comparison
-survives intervening instructions — but it imposes one rule:
+**Only ALU operations and `ADI` update the flags.** `LDI`, `LOD`, `STR`, the port instructions and the branches leave them untouched. This is useful — a comparison survives intervening instructions — but it imposes one rule:
 
-> The instruction that sets the flags must be the last ALU operation before the
-> `BRH`. Any other ALU operation in between overwrites them.
+> The instruction that sets the flags must be the last ALU operation before the `BRH`. Any other ALU operation in between overwrites them.
 
 ---
 
@@ -244,8 +229,7 @@ loop:
 done:
 ```
 
-Here the `CMP` is at the top, so the body may contain anything: the comparison is
-redone every iteration.
+Here the `CMP` is at the top, so the body may contain anything: the comparison is redone every iteration.
 
 ### Multiplication
 
@@ -277,8 +261,7 @@ The guard is not optional: without it, `r2 = 0` runs 65536 iterations.
 
 ### Writing a sequence to memory
 
-**This is V2's most annoying limitation.** With no indirect addressing you cannot
-walk an array: every address must be a constant written into the instruction.
+**This is V2's most annoying limitation.** With no indirect addressing you cannot walk an array: every address must be a constant written into the instruction.
 
 ```
         STR  r1, 0x0000
@@ -286,14 +269,11 @@ walk an array: every address must be a constant written into the instruction.
         STR  r3, 0x0002     ; ... one per location
 ```
 
-Storing twenty values costs twenty of your 256 instructions. This is why `LDP` /
-`STP` sit at the top of the V3 list.
+Storing twenty values costs twenty of your 256 instructions. This is why `LDP` / `STP` sit at the top of the V3 list.
 
 ### Repeated code
 
-There are no subroutines — `CAL` and `RET` arrive in V3. A block needed in three
-places must be written three times. With 256 instructions total, this is the
-constraint that decides how large a program can be.
+There are no subroutines — `CAL` and `RET` arrive in V3. A block needed in three places must be written three times. With 256 instructions total, this is the constraint that decides how large a program can be.
 
 ---
 
@@ -348,8 +328,7 @@ Ten instructions, result 89.
 python3 parallax_asm.py program.asm --format bin -o build/
 ```
 
-Produces `build/rom_high.txt` and `build/rom_low.txt`, to be pasted into the
-matching ROM chips after selecting binary representation in the editor.
+Produces `build/rom_high.txt` and `build/rom_low.txt`, to be pasted into the matching ROM chips after selecting binary representation in the editor.
 
 To check the encoding field by field:
 

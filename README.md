@@ -8,7 +8,7 @@ A 16-bit CPU built from NAND gates up, in [Digital Logic Sim](https://sebastian.
 
 Parallax is a Harvard, load-store, register-register machine with fixed-length instructions — a RISC-like 16-bit CPU. Only loads and stores touch memory; every ALU operation works on registers, with three operands and a hardwired zero register. Instructions are 28 bits in three formats, and I/O lives in a port space separate from memory.
 
-Where it is unusual is the logic set. `IMPLY`, `NIMPLY`, `NAND`, `NOR` and `XNOR` exist as separate instructions, which no commercial ISA bothers with: they implement two or three and synthesise the rest. That is the signature of a CPU built from NAND gates up, where those functions cost almost nothing.
+Where it is unusual is the logic set. `IMPLY`, `NIMPLY`, `NAND`, `NOR` and `XNOR` exist as separate instructions, which no commercial ISA bothers with: they implement two or three and synthesise the rest. That is the signature of a CPU built from NAND gates up, where those functions cost almost nothing and may as well be exposed.
 
 ## Specifications
 
@@ -27,21 +27,18 @@ Where it is unusual is the logic set. `IMPLY`, `NIMPLY`, `NAND`, `NOR` and `XNOR
 
 ## Instruction set
 
-Full table in [`toolchain/v3/isa.md`](toolchain/v3/isa.md).
+Full table in [`toolchain/isa.md`](toolchain/isa.md).
 
 ## Repository layout
 
 ```
-toolchain/            ISA, assemblers, programs and other files
-  asm/            
-    assemblers/       Python assemblers
-    examples/         Example programs
-    tests/            Test programs
-  v2/
-  v3/
-CHANGELOG.md
-README.md
-LICENSE
+toolchain/        everything that depends on the ISA, not on the wiring
+  isa.md            instruction set reference
+  assembly.md     writing programs: syntax, idioms, gotchas
+  asm/              assemblers (Python, no dependencies) — one per ISA version
+  programs/
+    examples/         clean, commented — for reading
+    tests/            test suites with expected values (0xBEEF / 0xDEAD)
 ```
 
 ## Assembling a program
@@ -52,7 +49,7 @@ The assembler needs Python 3 and nothing else.
 python3 toolchain/asm/parallax_asm_v3.py toolchain/programs/examples/sum_array.asm --format bin -o build/
 ```
 
-This produces `build/rom_high.txt` and `build/rom_low.txt`, one number per line. Paste each into its ROM chip in Digital Logic Sim, after selecting the matching representation in the ROM editor.
+This produces `build/rom_high.txt` and `build/rom_low.txt` — one number per line. Paste each into its ROM chip in Digital Logic Sim, after selecting the matching representation in the ROM editor.
 
 To inspect the encoding field by field:
 
@@ -69,7 +66,7 @@ idx   --   opcode   n1     n2   n3   n4   n5     source
 
 | Document | |
 |---|---|
-| [`toolchain/isa.md`](toolchain/isa.md) | instruction set reference — the full table |
+| [`toolchain/v3/isa.md`](toolchain/v3/isa.md) | instruction set reference — the full table |
 | [`toolchain/v2/assembly_V2.md`](toolchain/v2/assembly_V2.md) | writing programs: syntax, registers, arithmetic, logic, memory, ports |
 | [`toolchain/v3/assembly_V3.md`](toolchain/v3/assembly_V3_.md) | what V3 adds: multiply, pointers, subroutines, computed jumps |
 | [`dls.md`](dls.md) | design specification — wiring, control signals |

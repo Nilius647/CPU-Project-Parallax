@@ -4,10 +4,7 @@
 
 ## V3 — complete
 
-Three additions on top of the V2 datapath: multiplication, pointers and
-subroutines. Datapath width, register file, instruction word and instruction
-memory are unchanged. Opcodes are renumbered, so V2 machine code does not run on
-V3 — the source does.
+Three additions on top of the V2 datapath: multiplication, pointers and subroutines. Datapath width, register file, instruction word and instruction memory are unchanged. Opcodes are renumbered, so V2 machine code does not run on V3 — the source does.
 
 Instruction count goes from 27 to **33**.
 
@@ -15,27 +12,17 @@ Instruction count goes from 27 to **33**.
 
 **Multiplication**
 
-- **`MUL rA, rB, rC`** — fills the sixteenth ALU function slot, the last one
-  free. The product of two 16-bit values takes 32 bits, so `MUL` returns the low
-  half only.
-- **`ov` flag, condition code `111`** — raised when the high half of the product
-  is non-zero. The last free code in the 4-bit `cond` field, so overflow is
-  testable with `BRH ov, label` and the carry keeps its single meaning.
+- **`MUL rA, rB, rC`** — fills the sixteenth ALU function slot, the last one free. The product of two 16-bit values takes 32 bits, so `MUL` returns the low half only.
+- **`ov` flag, condition code `111`** — raised when the high half of the product is non-zero. The last free code in the 4-bit `cond` field, so overflow is testable with `BRH ov, label` and the carry keeps its single meaning.
 
 **Pointers**
 
-- **`LDP rA, rB`** and **`STP rA, rB`** — load and store where the address comes
-  from a register instead of from the instruction. This is what makes arrays,
-  strings and any data-driven code possible: the pointer is an ordinary register,
-  so `INC`, `ADD` and `CMP` all work on it.
-- **`JMR rA`** — computed jump, for jump tables. The register is 16-bit and the
-  PC is 8-bit, so the low 8 bits are used.
+- **`LDP rA, rB`** and **`STP rA, rB`** — load and store where the address comes from a register instead of from the instruction. This is what makes arrays, strings and any data-driven code possible: the pointer is an ordinary register, so `INC`, `ADD` and `CMP` all work on it.
+- **`JMR rA`** — computed jump, for jump tables. The register is 16-bit and the PC is 8-bit, so the low 8 bits are used.
 
 **Subroutines**
 
-- **`CAL addr`** and **`RET`** — call and return, backed by a dedicated hardware
-  return stack: 16 levels, separate from main RAM, with a 4-bit up/down counter
-  as stack pointer. Neither instruction touches any register.
+- **`CAL addr`** and **`RET`** — call and return, backed by a dedicated hardware return stack: 16 levels, separate from main RAM, with a 4-bit up/down counter as stack pointer. Neither instruction touches any register.
 
 ### Changed
 
@@ -51,33 +38,20 @@ Instruction count goes from 27 to **33**.
 | RAM address source | instruction field only | **instruction field or register** |
 | Opcodes | `0x00`–`0x1A` | **`0x00`–`0x20`, renumbered** |
 
-**Opcodes renumbered.** Still sequential with no gaps. The ALU block keeps the
-first sixteen slots, so `opcode[3:0]` remains the ALU function select — and with
-`MUL` filling slot 15 and `NOP` moved to `0x10`, `opcode[7:4] == 0` now means
-"ALU operation" with no exception at all.
+**Opcodes renumbered.** Still sequential with no gaps. The ALU block keeps the first sixteen slots, so `opcode[3:0]` remains the ALU function select — and with `MUL` filling slot 15 and `NOP` moved to `0x10`, `opcode[7:4] == 0` now means "ALU operation" with no exception at all.
 
-Everything from `NOP` onwards shifts by one: `NOP` `0x0F`→`0x10`, `LDI`
-`0x11`→`0x12`, and so on to `PLR` at `0x1E`. `CAL` and `RET` take `0x1F` and
-`0x20`.
+Everything from `NOP` onwards shifts by one: `NOP` `0x0F`→`0x10`, `LDI` `0x11`→`0x12`, and so on to `PLR` at `0x1E`. `CAL` and `RET` take `0x1F` and `0x20`.
 
-**Memory addresses widened.** `STR`, `LOD`, `PSM` and `PLM` now carry a full
-16-bit address across nibbles 2-5, sharing the extraction path with the
-`LDI` / `ADI` immediate. Program addresses (`JMP`, `BRH`, `CAL`) stay 8-bit in
-nibbles 2-3.
+**Memory addresses widened.** `STR`, `LOD`, `PSM` and `PLM` now carry a full 16-bit address across nibbles 2-5, sharing the extraction path with the `LDI` / `ADI` immediate. Program addresses (`JMP`, `BRH`, `CAL`) stay 8-bit in nibbles 2-3.
 
-**Address space and installed memory are now distinct.** The ISA addresses 65536
-words; the machine installs 1024 (2 KB), valid range `0x0000`–`0x03FF`. Access
-beyond that wraps to the start of memory rather than raising anything. More banks
-can be attached later without touching the ISA or the assembler.
+**Address space and installed memory are now distinct.** The ISA addresses 65536 words; the machine installs 1024 (2 KB), valid range `0x0000`–`0x03FF`. Access beyond that wraps to the start of memory rather than raising anything. More banks can be attached later without touching the ISA or the assembler.
 
 ### New control signals
 
 - **RAM address mux** — one bit, set only for `LDP` and `STP`
 - **Stack push / pop** — set for `CAL` and `RET` respectively
 
-`CAL` does not add a `PCaddress mux` source: it uses the same one as `JMP`, and
-additionally writes to the stack. Only `RET` reads from the stack, so only `RET`
-needs a source of its own.
+`CAL` does not add a `PCaddress mux` source: it uses the same one as `JMP`, and additionally writes to the stack. Only `RET` reads from the stack, so only `RET` needs a source of its own.
 
 ### Unchanged
 
@@ -90,23 +64,12 @@ needs a source of its own.
 
 ### Fixed
 
-- **`PSR` / `PLR` field placement** — both assemblers placed the register in
-  nibble 1 and the port in nibble 2. Cross-checked against the control-ROM
-  spreadsheet, the real wiring leaves nibble 1 empty and places the register
-  in nibble 2, the port in nibble 3. Corrected in both `parallax_asm.py` and
-  `parallax_asm_v3.py` — any program using `PSR` or `PLR` assembled before
-  this fix needs reassembling.
-- **`MOV` pseudo-instruction expansion** — expanded as `ADD r0, rS, rD`; the
-  spreadsheet places the explicit source operand in nibble 1, so the correct
-  expansion is `ADD rS, r0, rD`. Same result either way (addition is
-  commutative), corrected for consistency with the actual wiring.
+- **`PSR` / `PLR` field placement** — both assemblers placed the register in nibble 1 and the port in nibble 2. Cross-checked against the control-ROM spreadsheet, the real wiring leaves nibble 1 empty and places the register in nibble 2, the port in nibble 3. Corrected in both `parallax_asm.py` and `parallax_asm_v3.py` — any program using `PSR` or `PLR` assembled before this fix needs reassembling.
+- **`MOV` pseudo-instruction expansion** — expanded as `ADD r0, rS, rD`; the spreadsheet places the explicit source operand in nibble 1, so the correct expansion is `ADD rS, r0, rD`. Same result either way (addition is commutative), corrected for consistency with the actual wiring.
 
 ### Tooling
 
-- **`parallax_asm_v3.py`** — separate from the V2 assembler, since the opcodes
-  are incompatible. Adds the six new mnemonics, the `ov` condition, 16-bit memory
-  addresses, and labels usable as immediates (`LDI r1, routine` then `JMR r1`,
-  which is what makes jump tables buildable).
+- **`parallax_asm_v3.py`** — separate from the V2 assembler, since the opcodes are incompatible. Adds the six new mnemonics, the `ov` condition, 16-bit memory addresses, and labels usable as immediates (`LDI r1, routine` then `JMR r1`, which is what makes jump tables buildable).
 
 ### Deferred to V4
 
@@ -121,31 +84,20 @@ needs a source of its own.
 
 ### Known limits
 
-- The return stack wraps silently on the seventeenth nested `CAL`, and a `RET`
-  without a matching `CAL` returns to an arbitrary address. No flag signals
-  either.
-- With no data stack, there is no mechanism to save registers across a call: the
-  caller must know what each subroutine clobbers.
-- The zero flag after a `MUL` refers to the low 16 bits only, so it can be raised
-  on a non-zero product.
+- The return stack wraps silently on the seventeenth nested `CAL`, and a `RET` without a matching `CAL` returns to an arbitrary address. No flag signals either.
+- With no data stack, there is no mechanism to save registers across a call: the caller must know what each subroutine clobbers.
+- The zero flag after a `MUL` refers to the low 16 bits only, so it can be raised on a non-zero product.
 
 ---
 
 ## V2 — complete
 
-Datapath widened to 16 bits and instruction word to 28 bits. The ISA stays
-functionally identical to V1 — same 27 instructions, same mnemonics, same
-semantics — but the opcodes of the ALU block, `NOP` and `HLT` are renumbered.
-Binary compatibility with V1 is not maintained.
+Datapath widened to 16 bits and instruction word to 28 bits. The ISA stays functionally identical to V1 — same 27 instructions, same mnemonics, same semantics — but the opcodes of the ALU block, `NOP` and `HLT` are renumbered. Binary compatibility with V1 is not maintained.
 
 ### Fixed
 
-- **`NOT` / `AND` opcode collision** — in the V1 table both were listed as
-  `0b00100`, making one of them undecodable. With the fix, the actual
-  instruction count is **27**, not 26.
-- **PC / instruction memory mismatch** — the PC had 6 address bits (64
-  locations) against a 32-instruction ROM, so half the address space did not
-  exist. PC width and ROM depth now match.
+- **`NOT` / `AND` opcode collision** — in the V1 table both were listed as `0b00100`, making one of them undecodable. With the fix, the actual instruction count is **27**, not 26.
+- **PC / instruction memory mismatch** — the PC had 6 address bits (64 locations) against a 32-instruction ROM, so half the address space did not exist. PC width and ROM depth now match.
 
 ### Changed
 
@@ -167,11 +119,9 @@ All of these are breaking changes.
 | `BRH` `cond` field | 3-bit | **4-bit** |
 | Register `r0` | general purpose | **zero register** |
 
-Register `0000` is no longer usable storage: reads always return 0, and the
-write enable is suppressed.
+Register `0000` is no longer usable storage: reads always return 0, and the write enable is suppressed.
 
-**Opcodes renumbered.** The numbering stays sequential with no gaps
-(`0x00`–`0x1A`), but the ALU block moves to the front:
+**Opcodes renumbered.** The numbering stays sequential with no gaps (`0x00`–`0x1A`), but the ALU block moves to the front:
 
 | | V1 | V2 |
 |---|---|---|
@@ -180,45 +130,24 @@ write enable is suppressed.
 | `HLT` | `0x01` | **`0x10`** |
 | `LDI` … `PLR` | `0x11`–`0x1A` | `0x11`–`0x1A` *(unchanged)* |
 
-Rationale: with the ALU block aligned to the start of the nibble,
-`opcode[3:0]` *is* the Hypo ALU function select. In V1 the ALU functions
-straddled the nibble boundary, so the CU would have had to subtract 2 from the
-opcode or go through a lookup.
+Rationale: with the ALU block aligned to the start of the nibble, `opcode[3:0]` *is* the Hypo ALU function select. In V1 the ALU functions straddled the nibble boundary, so the CU would have had to subtract 2 from the opcode or go through a lookup.
 
 Two consequences worth keeping in mind:
 
-- `NOP` lands at `0x0F`, inside the ALU nibble, and presents function code 15,
-  which does not exist. No exclusion logic is needed: it is enough for row
-  `0x0F` of the control ROM to hold write enable and flag enable low.
-- The all-zero instruction word is no longer `NOP` but `ADD r0, r0, r0`. No
-  register is written (zero register), but the flags are. An uninitialised ROM
-  is all zeros, so programs must be terminated with `HLT`.
+- `NOP` lands at `0x0F`, inside the ALU nibble, and presents function code 15, which does not exist. No exclusion logic is needed: it is enough for row `0x0F` of the control ROM to hold write enable and flag enable low.
+- The all-zero instruction word is no longer `NOP` but `ADD r0, r0, r0`. No register is written (zero register), but the flags are. An uninitialised ROM is all zeros, so programs must be terminated with `HLT`.
 
 ### Added
 
-- **Flag register with enable and an explicit update policy**: only the 15 ALU
-  operations and `ADI` update the flags. `LDI`, `LOD`, `STR`, the port
-  instructions and the branches leave them intact, so a comparison survives the
-  intervening instructions all the way to the `BRH`.
-- **Three formalised instruction formats**: R (three registers), I (register +
-  16-bit immediate), J (condition + address).
-- **Pseudo-instructions** derived from the zero register: `MOV`, `CLR`, `NEG`
-  and above all `CMP` (`SUB rA, rB, r0`), which compares two registers without
-  wasting one on a result nobody wants.
-- **Assembler** — external Python tool: parsing, label resolution, output in
-  the format accepted by the DLS ROM editor (one number per line, pasted via the
-  editor's copy/paste buttons).
+- **Flag register with enable and an explicit update policy**: only the 15 ALU operations and `ADI` update the flags. `LDI`, `LOD`, `STR`, the port instructions and the branches leave them intact, so a comparison survives the intervening instructions all the way to the `BRH`.
+- **Three formalised instruction formats**: R (three registers), I (register + 16-bit immediate), J (condition + address).
+- **Pseudo-instructions** derived from the zero register: `MOV`, `CLR`, `NEG` and above all `CMP` (`SUB rA, rB, r0`), which compares two registers without wasting one on a result nobody wants.
+- **Assembler** — external Python tool: parsing, label resolution, output in the format accepted by the DLS ROM editor (one number per line, pasted via the editor's copy/paste buttons).
 
 ### Dropped
 
-- **`LUI` (Load Upper Immediate)** — planned while the format was still 20-bit,
-  to load the high byte of a register. With the 16-bit immediate of format I,
-  `LDI` fills a register in a single instruction, so the instruction is
-  unnecessary and will never be implemented.
-- **Immediate extension** (zero-extend on `LDI`, sign-extend on `ADI`) — only
-  needed while the immediate was narrower than the register. At 16 bits against
-  16 bits there is nothing to extend, and `ADI` handles two's-complement
-  negatives natively.
+- **`LUI` (Load Upper Immediate)** — planned while the format was still 20-bit, to load the high byte of a register. With the 16-bit immediate of format I, `LDI` fills a register in a single instruction, so the instruction is unnecessary and will never be implemented.
+- **Immediate extension** (zero-extend on `LDI`, sign-extend on `ADI`) — only needed while the immediate was narrower than the register. At 16 bits against 16 bits there is nothing to extend, and `ADI` handles two's-complement negatives natively.
 
 ### Unchanged
 
@@ -245,15 +174,13 @@ Predictions made at the time of V2. What actually happened:
 | Carry-lookahead adder | deferred to V4 |
 | Reserved gaps between opcode blocks | **dropped** — the ISA stays sequential |
 
-Not predicted, and added in V3 anyway: multiplication, with its product-overflow
-flag.
+Not predicted, and added in V3 anyway: multiplication, with its product-overflow flag.
 
 ---
 
 ## V1 — complete
 
-8-bit CPU, Harvard architecture, 27 instructions on a 20-bit word
-(8 opcode bits + 3 operand nibbles).
+8-bit CPU, Harvard architecture, 27 instructions on a 20-bit word (8 opcode bits + 3 operand nibbles).
 
 - **ALU** — Hypo ALU 2, 15 functions, 7 flags
 - **Registers** — 16 × 1 byte, DRSW (Dual Read Single Write)
@@ -262,6 +189,4 @@ flag.
 - **PC** — 6 address bits
 - **Ports** — 32 total (16 IN, 16 OUT) for communication with external chips
 
-Instructions: `NOP`, `HLT`, `ADD`, `SUB`, `NOT`, `AND`, `OR`, `XOR`, `NAND`,
-`NOR`, `XNOR`, `IMPLY`, `NIMPLY`, `SHL`, `SHR`, `INC`, `DEC`, `LDI`, `ADI`,
-`JMP`, `BRH`, `STR`, `LOD`, `PSM`, `PLM`, `PSR`, `PLR`.
+Instructions: `NOP`, `HLT`, `ADD`, `SUB`, `NOT`, `AND`, `OR`, `XOR`, `NAND`, `NOR`, `XNOR`, `IMPLY`, `NIMPLY`, `SHL`, `SHR`, `INC`, `DEC`, `LDI`, `ADI`, `JMP`, `BRH`, `STR`, `LOD`, `PSM`, `PLM`, `PSR`, `PLR`.

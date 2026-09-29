@@ -15,12 +15,9 @@ Reference for writing programs to be assembled with `parallax_asm_v3.py`.
 | 16-bit addresses | memory no longer stops at 256 words |
 | `ov` flag | product overflow detection |
 
-Syntax, registers and pseudo-instructions are identical to V2. **Opcodes are
-renumbered**, so V2 machine code does not run on V3 — the source does.
+Syntax, registers and pseudo-instructions are identical to V2. **Opcodes are renumbered**, so V2 machine code does not run on V3 — the source does.
 
-This guide covers **only what is new**. For arithmetic, logic, shifts, `LDI`,
-constant-address memory, ports and pseudo-instructions, the V2 guide still
-applies — with four exceptions, where V3 supersedes it:
+This guide covers **only what is new**. For arithmetic, logic, shifts, `LDI`, constant-address memory, ports and pseudo-instructions, the V2 guide still applies — with four exceptions, where V3 supersedes it:
 
 | In the V2 guide | In V3 |
 |---|---|
@@ -46,8 +43,7 @@ loop:
 ```
 
 - **Comments**: `;`, `//` or `#`
-- **Labels**: a name followed by a colon. They cannot share a name with a
-  mnemonic: `sub:` is an error, because `SUB` is an instruction
+- **Labels**: a name followed by a colon. They cannot share a name with a mnemonic: `sub:` is an error, because `SUB` is an instruction
 - **Case**: irrelevant
 - **Separators**: commas or spaces
 - **Numbers**: `255`, `0xFF`, `0b11111111`, `-1` (two's complement)
@@ -68,8 +64,7 @@ Unchanged from V2, but it now covers more instructions.
 | Memory write | `STR rA, addr` | none — `rA` is the source |
 | Indirect write | `STP rA, rB` | none — `rA` the data, `rB` the pointer |
 
-For `LDP` and `STP` the rule is: **the first operand is always the data, the
-second always the pointer.** The mnemonic supplies the direction.
+For `LDP` and `STP` the rule is: **the first operand is always the data, the second always the pointer.** The mnemonic supplies the direction.
 
 ---
 
@@ -79,8 +74,7 @@ second always the pointer.** The mnemonic supplies the direction.
         MUL  r1, r2, r3     ; r3 = (r1 * r2) truncated to 16 bits
 ```
 
-The full product of two 16-bit values takes 32 bits. `MUL` returns **the low 16
-bits only**.
+The full product of two 16-bit values takes 32 bits. `MUL` returns **the low 16 bits only**.
 
 ### Checking for overflow
 
@@ -89,16 +83,13 @@ bits only**.
         BRH  ov, too_big
 ```
 
-The `ov` flag is raised when the high half of the product is non-zero — that is,
-when the result does not fit in 16 bits.
+The `ov` flag is raised when the high half of the product is non-zero — that is, when the result does not fit in 16 bits.
 
 ### A trap
 
 > **`BRH z` after a `MUL` does not mean "the product is zero".**
 
-It means the *low* 16 bits are zero. `0x0100 × 0x0100` gives `0x00010000`: the
-low half is empty, so `z` is raised, but the product is 65536. To find out
-whether the product is really zero you need both conditions:
+It means the *low* 16 bits are zero. `0x0100 × 0x0100` gives `0x00010000`: the low half is empty, so `z` is raised, but the product is 65536. To find out whether the product is really zero you need both conditions:
 
 ```asm
         MUL  r1, r2, r3
@@ -121,13 +112,11 @@ double:
         RET
 ```
 
-`CAL` saves the return address on a dedicated hardware stack and jumps. `RET`
-retrieves it. Neither instruction touches any register by itself.
+`CAL` saves the return address on a dedicated hardware stack and jumps. `RET` retrieves it. Neither instruction touches any register by itself.
 
 ### Document what gets clobbered
 
-`CAL` leaves registers alone, but **the body of the subroutine does not**. At the
-call site you cannot see what is inside, so write it down:
+`CAL` leaves registers alone, but **the body of the subroutine does not**. At the call site you cannot see what is inside, so write it down:
 
 ```asm
 ; double: r1 = r1 * 2
@@ -137,17 +126,13 @@ double:
         RET
 ```
 
-With nested subroutines you need the clobber set of the whole tree: if `A` calls
-`B`, the comment on `A` must include whatever `B` destroys.
+With nested subroutines you need the clobber set of the whole tree: if `A` calls `B`, the comment on `A` must include whatever `B` destroys.
 
 ### Sixteen levels, and no warning
 
-The return stack is 16 deep. The seventeenth nested `CAL` overwrites the first
-saved address and the program will return to the wrong place — with no error at
-all. The same goes for a `RET` without a matching `CAL`.
+The return stack is 16 deep. The seventeenth nested `CAL` overwrites the first saved address and the program will return to the wrong place — with no error at all. The same goes for a `RET` without a matching `CAL`.
 
-With recursion, remember there are no local variables: every level shares the
-same registers.
+With recursion, remember there are no local variables: every level shares the same registers.
 
 ### Flags do not survive a call
 
@@ -157,9 +142,7 @@ same registers.
         BRH  eq, ...        ; condition already destroyed
 ```
 
-The V2 rule still holds — the instruction that sets the flags must be the last
-ALU operation before the `BRH` — but subroutines make it far easier to break
-without noticing, because the code that destroys them is not in front of you.
+The V2 rule still holds — the instruction that sets the flags must be the last ALU operation before the `BRH` — but subroutines make it far easier to break without noticing, because the code that destroys them is not in front of you.
 
 ---
 
@@ -174,8 +157,7 @@ A pointer is an ordinary register holding an address.
         LDP  r3, r1         ; r3 = MEM[0x0101]
 ```
 
-No special instruction is needed to advance a pointer: ALU operations and ADI all work,
-because it is a register like any other.
+No special instruction is needed to advance a pointer: ALU operations and ADI all work.
 
 ### The two instructions
 
@@ -184,11 +166,9 @@ because it is a register like any other.
 | Read | `LOD rA, addr` | **`LDP rA, rB`** |
 | Write | `STR rA, addr` | **`STP rA, rB`** |
 
-The mnemonics follow the V1 logic: `LOD` and `STR` become `LDP` and `STP` when
-the address comes from a register instead of from the instruction.
+The mnemonics follow the V1 logic: `LOD` and `STR` become `LDP` and `STP` when the address comes from a register instead of from the instruction.
 
-In both, **the first operand is the data and the second is the pointer.** That
-does not flip with direction — the mnemonic is what says which way the bits go:
+In both, **the first operand is the data and the second is the pointer.** That does not flip with direction — the mnemonic is what says which way the bits go:
 
 ```asm
         LDI  r1, 0x0200     ; pointer
@@ -208,17 +188,15 @@ Mind the order: `STP r2, r1` reads "store r2 where r1 points", not "store into r
 
 ```asm
 ; zero r2 words starting at r1
-        LDI r1 0x0200  ; address to start with
-        LDI r2 3       ; number of addresses to erase
         CLR  r3
 zero_loop:
-        STP  r3, r1    ; loads zero in the starting address
+        STP  r3, r1
         INC  r1, r1
         DEC  r2, r2
         BRH  nz, zero_loop
 ```
 
-### Summing an array
+### Walking an array
 
 The idiom V2 could not express:
 
@@ -235,13 +213,11 @@ loop:
         BRH  nz, loop
 ```
 
-Eight instructions, and it works for any length: change the counter, not the
-code. V2 needed two instructions per element.
+Eight instructions, and it works for any length: change the counter, not the code. V2 needed two instructions per element.
 
 ### No offset
 
-`LDP rA, rB` reads from exactly `rB`, with no displacement. For the third field
-of a structure, compute the address first:
+`LDP rA, rB` reads from exactly `rB`, with no displacement. For the third field of a structure, compute the address first:
 
 ```asm
         MOV  r1, r5
@@ -261,8 +237,7 @@ The register is 16 bits, the PC is 8: `JMR` uses **only the low 8 bits**.
 
 ### Jump table
 
-The table lives **in memory**, not in the code: it holds program addresses to be
-loaded into a register and used with `JMR`.
+The table lives **in memory**, not in the code: it holds program addresses to be loaded into a register and used with `JMR`.
 
 ```asm
 ; build the table in MEM[0x0200 .. 0x0203]
@@ -279,9 +254,7 @@ loaded into a register and used with `JMR`.
         JMR  r3
 ```
 
-**A label can be used as an immediate**, not only as a branch target:
-`LDI r4, case_zero` loads the address of the labelled instruction into `r4`.
-That is what makes building the table possible.
+**A label can be used as an immediate**, not only as a branch target: `LDI r4, case_zero` loads the address of the labelled instruction into `r4`. That is what makes building the table possible.
 
 ---
 
@@ -300,8 +273,7 @@ That is what makes building the table possible.
 
 Comparisons remain **unsigned**: `0xFFFF` is greater than 1, not less.
 
-Flags are updated by the **16 ALU operations** (`MUL` included) and `ADI`. Not
-touched by: `NOP`, `HLT`, `CAL`, `RET`, `LDI`, branches, memory, ports.
+Flags are updated by the **16 ALU operations** (`MUL` included) and `ADI`. Not touched by: `NOP`, `HLT`, `CAL`, `RET`, `LDI`, branches, memory, ports.
 
 ---
 
@@ -343,8 +315,7 @@ copy:
         RET
 ```
 
-Six instructions for a routine reusable anywhere — pointers plus subroutines are
-what make code like this possible.
+Six instructions for a routine reusable anywhere — pointers plus subroutines are what make code like this possible.
 
 ### Squaring
 
@@ -367,9 +338,7 @@ what make code like this possible.
 | One-position shifts | n positions = n instructions |
 | Word-addressed memory | you address 16-bit words, not bytes |
 
-The address space is 65536 words, but the RAM installed is **1024 words (2 KB)**:
-valid addresses run from `0x0000` to `0x03FF`. Writing beyond that raises no
-error — the access wraps to the start of memory, so `0x0400` lands on `0x0000`.
+The address space is 65536 words, but the RAM installed is **1024 words (2 KB)**: valid addresses run from `0x0000` to `0x03FF`. Writing beyond that raises no error — the access wraps to the start of memory, so `0x0400` lands on `0x0000`.
 
 ---
 
@@ -409,14 +378,13 @@ overflow:
 ## 11. Assembling
 
 ```
-python3 parallax_asm_v3.py (FILE NAME) --format bin -o build/
+python3 parallax_asm_v3.py program.asm --format bin -o build/
 ```
 
-Produces `build/rom_high.txt` and `build/rom_low.txt`, to be pasted into the
-matching ROM chips after selecting binary representation in the editor.
+Produces `build/rom_high.txt` and `build/rom_low.txt`, to be pasted into the matching ROM chips after selecting binary representation in the editor.
 
 To check the encoding field by field:
 
 ```
-python3 parallax_asm_v3.py (FILE NAME) --listing
+python3 parallax_asm_v3.py program.asm --listing
 ```
