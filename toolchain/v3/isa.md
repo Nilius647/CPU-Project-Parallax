@@ -19,8 +19,7 @@ Format J (branch)       [ opcode 8 ][ cond 4 ][ addr 8 ][ ---- 8 ]
 | nibble 4 | 7–4 |
 | nibble 5 | 3–0 |
 
-Immediates and memory addresses span bits 15–0 (nibbles 2–5). Program addresses
-are 8-bit and sit in nibbles 2–3.
+Immediates and memory addresses span bits 15–0 (nibbles 2–5). Program addresses are 8-bit and sit in nibbles 2–3.
 
 ## Instructions
 
@@ -60,18 +59,11 @@ are 8-bit and sit in nibbles 2–3.
 | `0x1F` | CAL | J | addr | push PC+1, PC = addr |
 | `0x20` | RET | — | — | PC = pop |
 
-The low nibble of the opcode is the ALU function select: the 16 ALU functions
-occupy `0x00`–`0x0F` in the same order the ALU selects them, so `opcode[3:0]`
-drives the function input directly and `opcode[7:4] == 0` identifies an ALU
-operation with no exception.
+The low nibble of the opcode is the ALU function select: the 16 ALU functions occupy `0x00`–`0x0F` in the same order the ALU selects them, so `opcode[3:0]` drives the function input directly and `opcode[7:4] == 0` identifies an ALU operation with no exception.
 
-`STP` and `LDP` place `rA` in nibble 1 and the pointer `rB` in nibble 2. `JMR`
-places the pointer in nibble 1, so it comes out of read port A. `PSM` / `PLM`
-place a 4-bit port field in nibble 1 followed by the address. `PSR` / `PLR`
-leave nibble 1 empty and use register in nibble 2, port in nibble 3.
+`STP` and `LDP` place `rA` in nibble 1 and the pointer `rB` in nibble 2. `JMR` places the pointer in nibble 1, so it comes out of read port A. `PSM` / `PLM` place a 4-bit port field in nibble 1 followed by the address. `PSR` / `PLR` leave nibble 1 empty and use register in nibble 2, port in nibble 3.
 
-Input and output ports are separate spaces — `IN[3]` and `OUT[3]` are different
-physical ports.
+Input and output ports are separate spaces — `IN[3]` and `OUT[3]` are different physical ports.
 
 ## Condition codes
 
@@ -86,21 +78,15 @@ physical ports.
 | `110` | not Zero |
 | `111` | Overflow — high half of a product is non-zero |
 
-The `cond` field is 4 bits wide, leaving eight combinations free for the sign
-and arithmetic-overflow flags in V4.
+The `cond` field is 4 bits wide, leaving eight combinations free for the sign and arithmetic-overflow flags in V4.
 
-Only the 16 ALU operations and `ADI` update the flags — 17 rows of the control
-ROM. Everything else leaves them untouched.
+Only the 16 ALU operations and `ADI` update the flags — 17 rows of the control ROM. Everything else leaves them untouched.
 
-**After a `MUL`, the zero flag refers to the low 16 bits only.** `0x0100 ×
-0x0100` gives `0x00010000`: the low half is empty, so `z` is raised although the
-product is 65536. Testing both `ov` and `z` tells whether a product is really
-zero.
+**After a `MUL`, the zero flag refers to the low 16 bits only.** `0x0100 × 0x0100` gives `0x00010000`: the low half is empty, so `z` is raised although the product is 65536. Testing both `ov` and `z` tells whether a product is really zero.
 
 ## Pseudo-instructions
 
-Assembler-level only — no hardware exists for these. They work because `r0` is
-hardwired to zero.
+Assembler-level only — no hardware exists for these. They work because `r0` is hardwired to zero.
 
 | Written | Expands to | Effect |
 |---|---|---|
@@ -111,19 +97,14 @@ hardwired to zero.
 
 ## Registers
 
-16 addressable registers, `r0`–`r15`, 16 bits each. `r0` reads as zero and
-discards writes; it has no physical storage cell, so the register file contains
-15 registers.
+16 addressable registers, `r0`–`r15`, 16 bits each. `r0` reads as zero and discards writes; it has no physical storage cell, so the register file contains 15 registers.
 
 ## Memory
 
-Address space is 65536 words; the machine installs **1024 words (2 KB)**, valid
-range `0x0000`–`0x03FF`. Access beyond that wraps to the start of memory.
+Address space is 65536 words; the machine installs **1024 words (2 KB)**, valid range `0x0000`–`0x03FF`. Access beyond that wraps to the start of memory.
 
 Program memory is separate (Harvard): 256 instructions of 28 bits, 8-bit PC.
 
 ## Return stack
 
-Dedicated hardware, 16 levels deep, separate from main RAM. `CAL` pushes `PC+1`,
-`RET` pops. Neither touches any register. The stack wraps silently on the
-seventeenth nested call.
+Dedicated hardware, 16 levels deep, separate from main RAM. `CAL` pushes `PC+1`, `RET` pops. Neither touches any register. The stack wraps silently on the seventeenth nested call.
