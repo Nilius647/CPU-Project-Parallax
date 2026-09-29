@@ -39,7 +39,6 @@ toolchain/            ISA, assemblers, programs and other files
     tests/            Test programs
   v2/
   v3/
-dls.md
 CHANGELOG.md
 README.md
 LICENSE
@@ -53,9 +52,7 @@ The assembler needs Python 3 and nothing else.
 python3 toolchain/asm/parallax_asm_v3.py toolchain/programs/examples/sum_array.asm --format bin -o build/
 ```
 
-This produces `build/rom_high.txt` and `build/rom_low.txt`, one number per
-line. Paste each into its ROM chip in Digital Logic Sim, after selecting the
-matching representation in the ROM editor.
+This produces `build/rom_high.txt` and `build/rom_low.txt`, one number per line. Paste each into its ROM chip in Digital Logic Sim, after selecting the matching representation in the ROM editor.
 
 To inspect the encoding field by field:
 
@@ -78,31 +75,22 @@ idx   --   opcode   n1     n2   n3   n4   n5     source
 | [`dls.md`](dls.md) | design specification — wiring, control signals |
 | [`CHANGELOG.md`](CHANGELOG.md) | V1 → V2 → V3 |
 
-The V3 guide is a delta: it covers only the new instructions, so the V2 guide
-still applies word for word for everything else.
+The V3 guide is a delta: it covers only the new instructions, so the V2 guide still applies word for word for everything else.
 
 ## Versions
 
 **V1** — 8-bit datapath, 20-bit instructions, 32 instructions of program memory.
 
-**V2** — 16-bit datapath, 28-bit instructions, 256 instructions of program
-memory, zero register, latched flag register, and an assembler.
+**V2** — 16-bit datapath, 28-bit instructions, 256 instructions of program memory, zero register, latched flag register, and an assembler.
 
-**V3** — multiplication with overflow detection, pointers (`LDP` / `STP`),
-computed jumps (`JMR`), subroutines (`CAL` / `RET`) on a 16-level hardware
-return stack, and 16-bit memory addresses. Full details in the
-[changelog](CHANGELOG.md).
+**V3** — multiplication with overflow detection, pointers (`LDP` / `STP`), computed jumps (`JMR`), subroutines (`CAL` / `RET`) on a 16-level hardware return stack, and 16-bit memory addresses. Full details in the [changelog](CHANGELOG.md).
 
 ## Roadmap — V4
 
-- **Data stack** with `PSH` / `POP`, so registers can be saved across calls and
-  recursion can have local variables
-- **Pointer offsets** — `LDP rA, rB, imm8`, for struct fields without computing
-  the address first
-- **Signed arithmetic** — sign and overflow flags, added together, for signed
-  comparison (`N XOR V`)
-- **Larger instruction memory** with 16-bit program addresses; the encoding is
-  already in place
+- **Data stack** with `PSH` / `POP`, so registers can be saved across calls and recursion can have local variables
+- **Pointer offsets** — `LDP rA, rB, imm8`, for struct fields without computing the address first
+- **Signed arithmetic** — sign and overflow flags, added together, for signed comparison (`N XOR V`)
+- **Larger instruction memory** with 16-bit program addresses; the encoding is already in place
 - `SUI`
 - Carry-lookahead adder to replace the ripple-carry, and eventually pipelining
 
