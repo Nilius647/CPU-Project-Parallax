@@ -1,9 +1,9 @@
 module ProgramCounter (
     input wire clk,
     input wire rst,
-    input wire [15:0] address,
-    output reg [15:0] address_out,
-    output reg [15:0] next_address
+    input wire [7:0] address,
+    output reg [7:0] address_out,
+    output reg [7:0] next_address
 );
     always @(posedge clk) begin
         if(rst) begin
