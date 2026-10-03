@@ -2,6 +2,60 @@
 
 ---
 
+## Parallax Silicon V3 — complete
+
+The V3 CPU rewritten from scratch in Verilog, aimed at a real FPGA. Same ISA as the DLS build: 33 instructions, `toolchain/v3/isa.md` — and no new features: only the implementation changes, so any difference in behaviour is a bug in the rewrite. Where the verilog is built differently, and why, is in `verilog/docs/differences.md`.
+
+The contract is the same pair of programs used for DLS: `test_all_v3.asm` and `test_call.asm` both end with `r15 = 0xBEEF` in simulation.
+
+### Added
+
+- **One module per file, each with its own testbench:** ALU, CU, call stack, register file, instruction memory, RAM, program counter, flag verifier, and a mux / demux library.
+- **`Datapath`**, wiring all of the components. Its testbench loads the assembler output (`rom_high.txt`, `rom_low.txt`) from the folder given with `+rom=<folder>`, runs until `HLT` and checks `r15`. With `+ports` it also checks the two input registers and the two output ports, which only `test_all_v3.asm` uses.
+- **Flag verifier** — a separate module holding the flag register and evaluating the `BRH` condition.
+
+### Changed
+
+Details and reasons in `verilog/docs/differences.md`.
+
+- `HLT` freezes the PC with a synchronous enable instead of cutting the clock.
+- The flags are saved in the flag verifier, not in the ALU. The ALU is purely combinational.
+- `BRH` is resolved in the Datapath: the CU always requests the branch source and the Datapath cancels it when the condition is false.
+- Every register has an explicit reset.
+- `return` is called `ret` in the call stack and the CU (a reserved word in SystemVerilog).
+
+### Unchanged
+
+- The ISA, the instruction format and the opcodes
+- 16-bit datapath, 16 registers, `r0` hardwired to zero
+- 256 instructions of program memory, 8-bit PC
+- 1024 words of RAM, wrapping above `0x03FF`
+- 16 in and 16 out ports of 16 bits
+- Single cycle, no pipeline
+
+### Fixed
+
+Bugs found while writing the rewrite. The first two passed both reference programs.
+
+- **`CAL` did not jump.** The CU raised `call` but left the PC source on `PC + 1`, so the program ran the next instruction instead of the routine. Both reference programs still ended in `0xBEEF`: they only check `r15` and the results of the subroutines are never compared. Found by running `sum_array.asm`.
+- **`PSR` wrote the wrong register to the port.** The data path read the register in nibble 1, which is empty for `PSR`, and so wrote `r0`. `OUT[0]` stayed at zero. Found when the Datapath testbench started checking the output ports.
+- **Flags leaking outside the enable.** `BRH` leaves the ALU function at zero, so the ALU computed an `ADD` on whatever was on its inputs and the carry reached the flags. Found while designing the flag verifier; the ALU now outputs zero flags when the enable is off.
+- **Testbenches that passed without checking.** Comparing a value that is `x` with `!=` gives `x`, which an `if` reads as false, so no error was printed. The call stack test passed for this reason until the stack logic stopped producing `x`.
+
+### Known limits
+
+- `test_all_v3.asm` and `test_call.asm` do not compare most of their intermediate results (`r1`–`r3` after the calls, the port values), so `r15 = 0xBEEF` alone doesn't prove a pass. The Datapath testbench checks the ports; the rest rely on the comments in the source.
+- Only the `ov`, `nz` and `eq` conditions of `BRH` are exercised end to end by the reference programs. The flag verifier is tested on its own, but not on every condition code.
+- Memory cells that were never written read as `x` in simulation.
+
+### Deferred
+
+- Trial synthesis with Yosys, to look for inferred latches and misused blocks
+- Widening the PC, instruction memory and RAM — left for the FPGA bring-up, with the real board's limits in front of us
+- Writing the assembler for this line, instead of reusing the V3 one
+
+---
+
 ## V3 — complete
 
 Three additions on top of the V2 datapath: multiplication, pointers and subroutines. Datapath width, register file, instruction word and instruction memory are unchanged. Opcodes are renumbered, so V2 machine code does not run on V3 — the source does.

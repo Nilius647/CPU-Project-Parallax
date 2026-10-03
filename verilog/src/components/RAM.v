@@ -8,7 +8,7 @@ module RAM (
     reg [15:0] ram [0:1023];
     initial begin
         for (integer i = 0; i < 1024; i = i + 1)
-            ram[1] = 0;
+            ram[i] = 0;
     end
     always @(posedge clk) begin
         if (write)

@@ -11,7 +11,7 @@ module InstructionMemory (
     reg [27:0] temp;
     initial begin
         for (integer i = 0; i < 256; i = i + 1)
-            instr_mem[1] = 0;
+            instr_mem[i] = 0;
     end
     always @(*) begin
         temp = instr_mem[address];
