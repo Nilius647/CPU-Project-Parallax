@@ -1,6 +1,6 @@
 module _2mux4b (
     input [3:0] a, b,
-    input [0:0] sel,
+    input sel,
     output reg [3:0] y
 );  
     always @(*) begin

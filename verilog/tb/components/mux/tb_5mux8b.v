@@ -23,6 +23,7 @@ module tb_5mux8b;
                 $display("Error: MUX output does not match the selected channel!");
             end
         end
+        $display("Test finished");
         $finish;
     end
 endmodule

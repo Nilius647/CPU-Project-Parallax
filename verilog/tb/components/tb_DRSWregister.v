@@ -1,17 +1,16 @@
 module tb_DRSWregister;
     reg clk;
-    reg enable;
+    reg rst;
     reg write;
-    reg [7:0] addr1, addr2, write_addr;
+    reg [3:0] addr1, addr2, write_addr;
     reg [15:0] data;
     wire [15:0] out1, out2;
-    DRSWregister uut (.clk(clk), .enable(enable), .write(write), .addr1(addr1), .addr2(addr2), .write_addr(write_addr), .data(data), .out1(out1), .out2(out2));
+    DRSWregister uut (.clk(clk), .rst(rst), .write(write), .addr1(addr1), .addr2(addr2), .write_addr(write_addr), .data(data), .out1(out1), .out2(out2));
     initial clk = 0;
     always #5 clk = ~clk;
     initial begin
         $dumpfile("sim/dump.vcd");
         $dumpvars(0, tb_DRSWregister);
-        enable = 1;
         write = 1;
         write_addr = 8'h01;
         data = 16'hAAAA;
@@ -37,6 +36,15 @@ module tb_DRSWregister;
         #10;
         if (out1 != 16'h0000)
             $display("Error: zero register displays data!");
+        rst = 1;
+        @(posedge clk);
+        #1;
+        rst = 0;
+        addr1 = 8'h01;
+        #10;
+        if (out1 != 16'h0000)
+            $display("Error: register didn't reset!");
+        $display("Test finished");
         $finish;
     end
 endmodule

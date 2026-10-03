@@ -25,6 +25,7 @@ module tb_2demux16b;
                 end
             end
         end
+        $display("Test finished");
         $finish;
     end
 endmodule
