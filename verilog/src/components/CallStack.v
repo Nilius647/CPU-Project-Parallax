@@ -2,7 +2,7 @@ module CallStack (
     input wire clk,
     input wire rst,
     input wire call,
-    input wire return,
+    input wire ret,
     input wire [7:0] address_in,
     output reg [7:0] address_out
 );
@@ -14,13 +14,17 @@ module CallStack (
         else if (call) begin
             stack[counter] <= address_in;
             counter <= counter + 1;
-        end else if (return)
+        end else if (ret)
             counter <= counter - 1;
     end 
     always @(*) begin
-        if (return)
-            address_out = stack [counter - 1];
-        else
-            address_out = 16'h0000;
+        if (ret) begin
+            if(counter != 0)
+                address_out = stack[counter - 1];
+            else
+                address_out = 0;
+        end else begin
+            address_out = 8'h00;
+        end
     end
 endmodule

@@ -83,14 +83,26 @@ module tb_ALU;
             $display("Error: multiplication failed!");
         if (flags[7] != 1)
             $display("Error: overflow flag failed!");
-        a = 16'b0110110100011100;
-        b = 16'b0110110100011100;
+        a = 16'b1110110100011100;
+        b = 16'b1110110100011100;
         operation = 4'b0001;
         #10;
         if (flags[4] != 1 || flags[6] != 0)
             $display("Error: zero flag failed!");
         if (flags[2] != 1)
             $display("Error: a = b flag failed!");
+        enable_flags = 0;
+        operation = 4'b0000;
+        #10;
+        if (out != a + b)
+            $display("Error: addition without flags failed!");
+        if (flags != 0)
+            $display("Error: flags are showed with flags disabled!");
+        operation = 4'b1111;
+        #10;
+        if (flags != 0)
+            $display("Error: flags are showed with flags disabled!");
+        $display("Test finished");
         $finish;
     end
 endmodule

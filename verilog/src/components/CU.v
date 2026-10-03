@@ -1,7 +1,7 @@
 module CU (
     input wire [7:0] opcode,
     output reg [3:0] ALU_op,
-    output reg store_reg, store_mem, call, return, ports, flags, stop_clock,
+    output reg store_reg, store_mem, call, ret, ports, flags, stop_clock,
     output reg [2:0] PAM,
     output reg [1:0] RDM, RWM,
     output reg BAM, IMM, MRPO, MRPI, RMIA, RMOA, MAM
@@ -11,7 +11,7 @@ module CU (
         store_reg = 0;
         store_mem = 0;
         call = 0;
-        return = 0;
+        ret = 0;
         ports = 0;
         flags = 0;
         stop_clock = 0;
@@ -57,8 +57,9 @@ module CU (
             8'b00011100: begin IMM = 1; RMIA = 1; store_mem = 1; end
             8'b00011101: begin MRPO = 1; ports = 1; end
             8'b00011110: begin RDM = 2'b11; RWM = 2'b10; MRPI = 1; store_reg = 1; end
-            8'b00011111: begin call = 1; end
-            8'b00100000: begin return = 1; end
+            8'b00011111: begin PAM = 3'b001; call = 1; end
+            8'b00100000: begin PAM = 3'b100; ret = 1; end
+            default: begin end
         endcase
     end
 endmodule

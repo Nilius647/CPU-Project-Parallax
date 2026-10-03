@@ -26,6 +26,7 @@ module tb_InstructionMemory;
             $display("Error: nibble 4 failed!");
         if (nibble5_out != 4'b0000)
             $display("Error: nibble 5 failed!");
+        $display("Test finished");
         $finish;
     end
 endmodule

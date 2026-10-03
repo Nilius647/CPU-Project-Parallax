@@ -9,6 +9,10 @@ module ALU (
     reg [31:0] temp_mul;
     reg [7:0] internal;
     always @(*) begin
+        out = 0;
+        internal = 0;
+        temp_add = 0;
+        temp_mul = 0;
         case (operation)
             4'b0000: temp_add = a + b;
             4'b0001: temp_add = a - b;
@@ -26,18 +30,13 @@ module ALU (
             4'b1101: out = a + 1;
             4'b1110: out = a - 1;
             4'b1111: temp_mul = a * b;
+            default: begin temp_add = 16'b0000; temp_mul = 32'b00000000; out = 16'b0000; end
         endcase
-        if (operation == 4'b0000 || operation == 4'b0001) begin
-            internal[0] = temp_add[16] == 1 ? 1 : 0;
-            out = temp_add;
-        end else if (operation == 4'b1111) begin
-            internal[7] = temp_mul[31:16] > 0 ? 1 : 0;
-            out = temp_mul;
-        end else begin
-            internal[0] = 0;
-            internal[7] = 0;
-        end
         if (enable_flags) begin
+            if (operation == 4'b0000 || operation == 4'b0001)
+                internal[0] = temp_add[16] == 1 ? 1 : 0;
+            else if (operation == 4'b1111)
+                internal[7] = temp_mul[31:16] > 0 ? 1 : 0;
             internal[1] = a > b ? 1 : 0;
             internal[2] = a == b ? 1 : 0;
             internal[3] = a < b ? 1 : 0;
@@ -45,6 +44,10 @@ module ALU (
             internal[5] = ~internal[0];
             internal[6] = ~internal[4];
         end
+        if (operation == 4'b0000 || operation == 4'b0001)
+            out = temp_add;
+        else if (operation == 4'b1111)
+            out = temp_mul;
         flags = internal;
     end
 endmodule

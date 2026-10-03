@@ -25,6 +25,7 @@ module tb_RAM;
         #10;
         if (data_out != 16'hBBBB)
             $display("Error: wrapping failed!");
+        $display("Test finished");
         $finish;
     end
 endmodule

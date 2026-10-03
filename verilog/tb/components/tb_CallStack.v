@@ -2,10 +2,10 @@ module tb_CallStack;
     reg clk;
     reg rst;
     reg call;
-    reg return;
+    reg ret;
     reg [7:0] address_in;
     wire [7:0] address_out;
-    CallStack uut (.clk(clk), .rst(rst), .call(call), .return(return), .address_in(address_in), .address_out(address_out));
+    CallStack uut (.clk(clk), .rst(rst), .call(call), .ret(ret), .address_in(address_in), .address_out(address_out));
     initial clk = 0;
     always #5 clk = ~clk;
     initial begin
@@ -14,12 +14,12 @@ module tb_CallStack;
         address_in = 8'hBB;
         call = 1;
         @(posedge clk);
-        #10;
+        #5;
         call = 0;
         if (address_out != 8'h00)
             $display("Error: call failed!");
-        return = 1;
-        #10;
+        ret = 1;
+        #5;
         if (address_out != 8'hBB)
             $display("Error: return failed!");
         address_in = 8'hEE;
@@ -30,7 +30,7 @@ module tb_CallStack;
         @(posedge clk);
         #1;
         call = 0;
-        return = 1;
+        ret = 1;
         #1;
         if (address_out != 8'hFF)
             $display("Error: return 1 failed!");
@@ -45,8 +45,9 @@ module tb_CallStack;
         rst = 1;
         @(posedge clk);
         #10;
-        if (address_out != 8'h01)
+        if (address_out != 8'h00)
             $display("Error: reset failed!");
+        $display("Test finished");
         $finish;
     end
 endmodule

@@ -1,6 +1,6 @@
 module _2mux8b (
     input [7:0] a, b,
-    input [0:0] sel,
+    input sel,
     output reg [7:0] y
 );  
     always @(*) begin
