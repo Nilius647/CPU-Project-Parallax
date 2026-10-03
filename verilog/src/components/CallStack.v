@@ -19,10 +19,7 @@ module CallStack (
     end 
     always @(*) begin
         if (ret) begin
-            if(counter != 0)
                 address_out = stack[counter - 1];
-            else
-                address_out = 0;
         end else begin
             address_out = 8'h00;
         end

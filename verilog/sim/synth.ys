@@ -1,0 +1,8 @@
+read_verilog -sv src/Datapath.v
+read_verilog -sv src/components/ALU.v src/components/CU.v src/components/CallStack.v src/components/DRSWregister.v
+read_verilog -sv src/components/FlagVerifier.v src/components/InstructionMemory.v src/components/ProgramCounter.v src/components/RAM.v
+read_verilog -sv src/components/mux/16mux16b.v src/components/mux/2mux16b.v src/components/mux/2mux4b.v src/components/mux/2mux8b.v src/components/mux/4mux16b.v src/components/mux/4mux4b.v src/components/mux/5mux8b.v
+read_verilog -sv src/components/demux/16demux16b.v src/components/demux/2demux16b.v
+hierarchy -top Datapath
+synth -top Datapath -flatten
+stat

@@ -34,4 +34,4 @@ Thumbs.db
 *.swp
 
 # --- Miscellaneous ---
-docs/
+priv_docs/
