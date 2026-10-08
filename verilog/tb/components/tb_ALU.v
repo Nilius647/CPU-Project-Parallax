@@ -4,7 +4,7 @@ module tb_ALU;
     reg [15:0] a, b;
     wire [7:0] flags;
     wire [15:0] out;
-    ALU uut (.enable_flags(enable_flags), .operation(operation), .a(a), .b(b), .flags(flags), .out(out));
+    ALUnit uut (.enable_flags(enable_flags), .operation(operation), .a(a), .b(b), .flags(flags), .out(out));
     initial begin
         $dumpfile("sim/dump.vcd");
         $dumpvars(0, tb_ALU);

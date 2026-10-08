@@ -1,4 +1,4 @@
-module ALU (
+module ALUnit (
     input wire enable_flags,
     input wire [3:0] operation,
     input wire [15:0] a, b,
@@ -20,9 +20,9 @@ module ALU (
             4'b0011: out = a & b;
             4'b0100: out = a | b;
             4'b0101: out = a ^ b;
-            4'b0110: out = a ~& b;
-            4'b0111: out = a ~| b;
-            4'b1000: out = a ~^ b;
+            4'b0110: out = ~(a & b);
+            4'b0111: out = ~(a | b);
+            4'b1000: out = ~(a ^ b);
             4'b1001: out = ~a | b;
             4'b1010: out = a & ~b;
             4'b1011: out = a * 2;
