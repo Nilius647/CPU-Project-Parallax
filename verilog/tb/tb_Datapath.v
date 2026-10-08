@@ -1,9 +1,12 @@
 module tb_Datapath;
     reg clk;
     reg rst;
+    reg write;
+    reg [15:0] write_address;
+    reg [27:0] instruction;
     reg [255:0] in;
     wire [255:0] out;
-    Datapath uut (.clk(clk), .rst(rst), .in(in), .out(out));
+    Datapath uut (.clk(clk), .rst(rst), .write(write), .write_address(write_address), .instruction(instruction), .in(in), .out(out));
     reg [15:0] low [0:255];
     reg [15:0] high [0:255];
     reg [27:0] instructions [0:255];
@@ -36,7 +39,7 @@ module tb_Datapath;
         rst = 0;
         in[0*16 +: 16] = 16'h1234;
         in[1*16 +: 16] = 16'h5678;
-        while (uut.PC.halt != 1 && k < 10000) begin
+        while (uut.cu_halt != 1 && k < 10000) begin
             @(posedge clk);
             #10;
             k = k + 1;

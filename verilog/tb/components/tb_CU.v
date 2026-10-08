@@ -1,12 +1,12 @@
 module tb_CU;
     reg [7:0] opcode;
     wire [3:0] ALU_op;
-    wire store_reg, store_mem, call, ret, ports, flags, stop_clock;
+    wire store_reg, store_mem, call, ret, ports, flags, stop_clock, needs_wait;
     wire [2:0] PAM;
     wire [1:0] RDM, RWM;
     wire BAM, IMM, MRPO, MRPI, RMIA, RMOA, MAM;
     CU uut (.opcode(opcode), .ALU_op(ALU_op), 
-        .store_reg(store_reg), .store_mem(store_mem), .call(call), .ret(ret), .ports(ports), .flags(flags), .stop_clock(stop_clock),
+        .store_reg(store_reg), .store_mem(store_mem), .call(call), .ret(ret), .ports(ports), .flags(flags), .stop_clock(stop_clock), .needs_wait(needs_wait),
         .PAM(PAM), .RDM(RDM), .RWM(RWM), .BAM(BAM), .IMM(IMM), .MRPO(MRPO), .MRPI(MRPI), .RMIA(RMIA), .RMOA(RMOA), .MAM(MAM));
     initial begin
         $dumpfile("sim/dump.vcd");
@@ -49,7 +49,7 @@ module tb_CU;
             $display("Error: STR failed!");
         opcode = opcode + 1;
         #10;
-        if (RDM != 2'b10 || RWM != 1 || store_reg != 1)
+        if (RDM != 2'b10 || RWM != 1 || store_reg != 1 || needs_wait != 1)
             $display("Error: LOD failed!");
         opcode = opcode + 1;
         #10;
@@ -57,11 +57,11 @@ module tb_CU;
             $display("Error: STP failed!");
         opcode = opcode + 1;
         #10;
-        if (RDM != 2'b10 || RWM != 1 || MAM != 1 || store_reg != 1)
+        if (RDM != 2'b10 || RWM != 1 || MAM != 1 || store_reg != 1 || needs_wait != 1)
             $display("Error: LDP failed!");
         opcode = opcode + 1;
         #10;
-        if (RMOA != 1 || ports != 1)
+        if (RMOA != 1 || ports != 1 || needs_wait != 1)
             $display("Error: PSM failed!");
         opcode = opcode + 1;
         #10;
